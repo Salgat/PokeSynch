@@ -41,4 +41,8 @@ CMakeCache.txt
 *.lnk
 Thumbs.db
 
+# Roms and save files
+*.gb
+*.gbs
+
 # Exclude from ignore
