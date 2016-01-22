@@ -18,6 +18,7 @@
 #include "Display.hpp"
 #include "Timer.hpp"
 #include "Input.hpp"
+#include "Network.hpp"
 
 /**
  * Emulates a GameBoy, outputting visuals to an sf::Image (160x144 pixels)
@@ -41,6 +42,7 @@ public:
     Display display;
     Timer timer;
     Input input;
+    Network network;
 };
 
 #endif //GAMEBOYEMULATOR_GAMEBOY_HPP

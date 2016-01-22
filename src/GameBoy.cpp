@@ -14,6 +14,7 @@ GameBoy::GameBoy(sf::RenderWindow& window)
     display.Initialize(&cpu, &mmu);
     timer.Initialize(&cpu, &mmu, &display);
 	input.Initialize(&mmu, &display, &timer, &cpu, this, &window);
+    network.Initialize(&mmu, &display, &timer, &cpu, this, &window);
 
 	Reset();
 }
