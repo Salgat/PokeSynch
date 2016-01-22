@@ -65,6 +65,42 @@ struct NetworkGameState {
 };
 
 /**
+ * All Packets start with PacketType to determine how to deserialize the message.
+ */
+enum class PacketType {
+    CONNECT_REQUEST = 1,
+    CONNECT_RESPONSE = 2,
+    NETWORK_GAME_STATE = 3,
+    NONE
+};
+
+/**
+ * Indicates what mode the network is in.
+ */
+enum class NetworkMode {
+    CONNECTING,
+    FAILED_CONNECTING,
+    IDLE,
+    CONNECTED_AS_CLIENT,
+    CONNECTED_AS_HOST,
+    NONE
+};
+
+/**
+ * Used to request a connection to host.
+ */
+struct ConnectRequest {
+    std::string name;
+};
+
+/**
+ * Used as a response to a connection request as the host.
+ */
+struct ConnectResponse {
+    int uniqueId; // Assigned from server
+};
+
+/**
  * Handles server and client communication.
  */
 class Network {
@@ -75,8 +111,10 @@ public:
 				    Timer* timer_, Processor* cpu_,  GameBoy* gameboy_, sf::RenderWindow* window_);
                     
     bool Host(unsigned short port);
-    bool Connect(sf::IpAddress address, unsigned short port);
+    bool Connect(sf::IpAddress address, unsigned short port, std::string name);
 
+    NetworkMode networkMode;
+    
 private:
     MemoryManagementUnit* mmu;
 	Display* display;
@@ -85,7 +123,12 @@ private:
 	GameBoy* gameboy;
     sf::RenderWindow* window;
     
+    sf::UdpSocket socket;
+    int uniqueId;
     std::vector<NetworkId> clients;
+    
+    bool SetupSocket(unsigned short port);
+    NetworkGameState Update();
 };
 
 #endif //GAMEBOYEMULATOR_NETWORK_HPP
