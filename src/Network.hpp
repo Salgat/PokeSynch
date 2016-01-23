@@ -11,6 +11,11 @@
 #include <SFML/Network.hpp>
 #include <SFML/System.hpp>
 
+#include  <unordered_map>
+#include <cstdlib>
+#include <iostream>
+#include <ctime>
+
 class MemoryManagementUnit;
 class Display;
 class Timer;
@@ -65,12 +70,21 @@ struct NetworkGameState {
 };
 
 /**
+ * Holds the synchronized game state of all players and the host's sprites.
+ */
+struct HostGameState {
+    std::vector<NetworkGameState> playerGameStates;
+    std::vector<SpriteState> sprites;
+};
+
+/**
  * All Packets start with PacketType to determine how to deserialize the message.
  */
 enum class PacketType {
     CONNECT_REQUEST = 1,
     CONNECT_RESPONSE = 2,
     NETWORK_GAME_STATE = 3,
+    HOST_GAME_STATE = 4,
     NONE
 };
 
@@ -125,10 +139,17 @@ private:
     
     sf::UdpSocket socket;
     int uniqueId;
-    std::vector<NetworkId> clients;
+    std::unordered_map<int, NetworkId> clients; // UniqueId, NetworkId
     
     bool SetupSocket(unsigned short port);
-    NetworkGameState Update();
+    HostGameState Update();
+    
+    HostGameState HostUpdate();
+    void HandleConnectRequest(sf::Packet packet, sf::IpAddress sender, unsigned short port);
+    NetworkGameState HandleGameStateResponse(sf::Packet gameStatePacket, sf::IpAddress sender, unsigned short port);
+    
+    HostGameState ClientUpdate();
+    void HandleConnectResponse(sf::Packet gameStatePacket, sf::IpAddress sender, unsigned short port);
 };
 
 #endif //GAMEBOYEMULATOR_NETWORK_HPP
