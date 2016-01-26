@@ -28,7 +28,7 @@ public:
 	int screen_size; // Multiplier
 	int game_speed; // Multiplier
 
-    GameBoy(sf::RenderWindow& window);
+    GameBoy(sf::RenderWindow& window, std::string name = "", unsigned short port = 34231, std::string ipAddress = "", unsigned short hostPort = 34232);
 
     void Reset();
     std::pair<sf::Image, bool> RenderFrame();

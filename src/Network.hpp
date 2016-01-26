@@ -125,7 +125,8 @@ public:
 				    Timer* timer_, Processor* cpu_,  GameBoy* gameboy_, sf::RenderWindow* window_);
                     
     bool Host(unsigned short port);
-    bool Connect(sf::IpAddress address, unsigned short port, std::string name);
+    bool Connect(sf::IpAddress address, unsigned short hostPort, unsigned short port, std::string name);
+    HostGameState Update();
 
     NetworkMode networkMode;
     
@@ -142,7 +143,6 @@ private:
     std::unordered_map<int, NetworkId> clients; // UniqueId, NetworkId
     
     bool SetupSocket(unsigned short port);
-    HostGameState Update();
     
     HostGameState HostUpdate();
     void HandleConnectRequest(sf::Packet packet, sf::IpAddress sender, unsigned short port);

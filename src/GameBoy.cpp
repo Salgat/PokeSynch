@@ -6,7 +6,7 @@
 
 #include <iostream>
 
-GameBoy::GameBoy(sf::RenderWindow& window)
+GameBoy::GameBoy(sf::RenderWindow& window, std::string name, unsigned short port, std::string ipAddress, unsigned short hostPort)
 	: screen_size(1)
 	, game_speed(1) {
     cpu.Initialize(&mmu);
@@ -17,6 +17,14 @@ GameBoy::GameBoy(sf::RenderWindow& window)
     network.Initialize(&mmu, &display, &timer, &cpu, this, &window);
 
 	Reset();
+    
+    // Attempt to connect as either host or client
+    // If IP Address provided, connect as client
+    if (ipAddress != "") {  
+        network.Connect(sf::IpAddress(ipAddress), hostPort, port, name);
+    } else {
+        network.Host(hostPort);
+    }
 }
 
 void GameBoy::LoadGame(std::string rom_name) {
@@ -31,6 +39,9 @@ void GameBoy::Reset() {
 
 // Todo: Frame calling v-blank 195-196x per frame??
 std::pair<sf::Image, bool> GameBoy::RenderFrame() {
+    // First check for any updates on the network
+    network.Update();
+    
     bool running = (input.PollEvents())?true:false;
 	cpu.frame_clock = cpu.clock + 17556; // Number of cycles/4 for one frame before v-blank
 	bool v_blank = false;

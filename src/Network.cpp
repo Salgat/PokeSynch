@@ -156,16 +156,20 @@ bool Network::SetupSocket(unsigned short port) {
     return true;
 }
 
+
 /**
  * Returns true after successfully acting as host and listening on the specified port.
  */
 bool Network::Host(unsigned short port) {
+    std::cout << "Attempting to host game." << std::endl;
     networkMode = NetworkMode::CONNECTING;
     if (!SetupSocket(port)) {
+        std::cout << "Failed to bind to socket." << std::endl;
         networkMode = NetworkMode::FAILED_CONNECTING;
         return false;
     }
     
+    std::cout << "Connected as host on port:" << port << std::endl;
     networkMode = NetworkMode::CONNECTED_AS_HOST;
     std::srand(std::time(0)); // use current time as seed for random generator
     uniqueId = std::rand();
@@ -176,42 +180,50 @@ bool Network::Host(unsigned short port) {
 /**
  * Returns true after successfully receiving a response from the host.
  */
-bool Network::Connect(sf::IpAddress address, unsigned short port, std::string name) {
+bool Network::Connect(sf::IpAddress address, unsigned short hostPort, unsigned short port, std::string name) {
+    std::cout << "Attempting to connect to host while listening on port: " << port << std::endl;
     networkMode = NetworkMode::CONNECTING;
     if (socket.bind(port) != sf::Socket::Done)
     {
+        std::cout << "Failed to bind to socket." << std::endl;
         networkMode = NetworkMode::FAILED_CONNECTING;
         return false;
     }
     
     // Setup request packet
+    std::cout << "Setting up request packet to send to port: " << hostPort << std::endl;
     ConnectRequest connectRequest;
     connectRequest.name = name;
     sf::Packet connectRequestPacket;
     connectRequestPacket << static_cast<int>(PacketType::CONNECT_REQUEST) << connectRequest;
     
     // Send a request to connect to host
-    if (socket.send(connectRequestPacket, address, port) != sf::Socket::Done) {
+    if (socket.send(connectRequestPacket, address, hostPort) != sf::Socket::Done) {
+        std::cout << "Failed to send connect request." << std::endl;
         networkMode = NetworkMode::FAILED_CONNECTING;
         return false;
     }
         
     // Wait for a response from the host
+    std::cout << "Packet sent, waiting for response." << std::endl;
     sf::Packet connectResponsePacket;
     int packetType;
     while (true) {
         if (socket.receive(connectResponsePacket, address, port) != sf::Socket::Done) {
+            std::cout << "Failed to receive packet." << std::endl;
             networkMode = NetworkMode::FAILED_CONNECTING;
             return false;
         }
-        connectRequestPacket >> packetType;
+        connectResponsePacket >> packetType;
         
         // Keep looping through until we receive a Connection Response
         // TODO: Make this asynchronous, otherwise we could be waiting forever on a dropped packet
         if (packetType == static_cast<int>(PacketType::CONNECT_RESPONSE)) break;
+        std::cout << "Packet type was not CONNECT_RESPONSE, attempting to receive another packet: " << packetType << std::endl;
     }
     
-    connectRequestPacket >> uniqueId;
+    std::cout << "Connection to host successful." << std::endl;
+    connectResponsePacket >> uniqueId;
     networkMode = NetworkMode::CONNECTED_AS_CLIENT;
     socket.setBlocking(false);
     return true;
@@ -223,8 +235,10 @@ bool Network::Connect(sf::IpAddress address, unsigned short port, std::string na
  */
 HostGameState Network::Update() {
     if (networkMode == NetworkMode::CONNECTED_AS_HOST) {
+        //std::cout << "Updating network as host." << std::endl;
         return HostUpdate();
     } else if (networkMode == NetworkMode::CONNECTED_AS_CLIENT) {
+        //std::cout << "Updating network as client." << std::endl;
         return ClientUpdate();
     } else {
         throw;
@@ -233,14 +247,18 @@ HostGameState Network::Update() {
 
 HostGameState Network::HostUpdate() {
     // Loop through all pending packets
+    //std::cout << "HostUpdate starting." << std::endl;
     std::vector<NetworkGameState> gameState;
     sf::Packet packet;
     sf::IpAddress sender;
     unsigned short port;
-    auto status = sf::Socket::Done;
-    while (status == sf::Socket::Done) {
-        auto result = socket.receive(packet, sender, port);
+    socket.setBlocking(false);
+    auto result = sf::Socket::Done;
+    while (result == sf::Socket::Done) {
+        //std::cout << "Receiving on socket for host." << std::endl;
+        result = socket.receive(packet, sender, port);
         if (result == sf::Socket::Done) {
+            //std::cout << "Packet received (Socket::Done)." << std::endl;
             int packetType;
             packet >> packetType;
             if (packetType == static_cast<int>(PacketType::CONNECT_REQUEST)) {
@@ -249,7 +267,7 @@ HostGameState Network::HostUpdate() {
                 gameState.push_back(HandleGameStateResponse(packet, sender, port));
             }
         } else if (result == sf::Socket::Disconnected) {
-            // TODO
+            // TODO Reconnect
         } else if (result == sf::Socket::Error) {
             // Do Nothing
         }
@@ -267,6 +285,7 @@ HostGameState Network::HostUpdate() {
  * For a connect request from the client, adds them to the client list and responds with their uniqueId.
  */
 void Network::HandleConnectRequest(sf::Packet requestPacket, sf::IpAddress sender, unsigned short port) {
+    std::cout << "Handling connection request." << std::endl;
     // Respond with a uniqueId and add the requester to the client listen
     ConnectResponse response;
     std::srand(std::time(0)); // use current time as seed for random generator
@@ -283,9 +302,11 @@ void Network::HandleConnectRequest(sf::Packet requestPacket, sf::IpAddress sende
     clients[clientId.uniqueId] = clientId;
     
     // Send response to client with uniqueId
+    std::cout << "Sending response to client for uniqueId: " << clientId.uniqueId << std::endl;
     sf::Packet connectResponsePacket;
     connectResponsePacket << static_cast<int>(PacketType::CONNECT_RESPONSE) << response;
     socket.send(connectResponsePacket, sender, port);
+    std::cout << "Connection response sent." << std::endl;
 }
 
 /**
@@ -306,9 +327,10 @@ HostGameState Network::ClientUpdate() {
     sf::Packet packet;
     sf::IpAddress sender;
     unsigned short port;
-    auto status = sf::Socket::Done;
-    while (status == sf::Socket::Done) {
-        auto result = socket.receive(packet, sender, port);
+    auto result = sf::Socket::Done;
+    socket.setBlocking(false);
+    while (result == sf::Socket::Done) {
+        result = socket.receive(packet, sender, port);
         if (result == sf::Socket::Done) {
             int packetType;
             packet >> packetType;

@@ -22,11 +22,25 @@ void DrawFrame(sf::Image const& frame) {
 
 int main(int argc, char* argv[]) {
     std::string game_name = "";
+    std::string ipAddress = "";
+    std::string name = "";
+    unsigned short port = 34231;
+    unsigned short hostPort = 34232;
     for (int argument = 1; argument < argc; ++argument) {
         auto arg = std::string(argv[argument]);
-        if (arg.find("-game=") == 0) {
+        if (arg.find("-game=") != std::string::npos) {
             // Game's File Name to load
             game_name = arg.substr(6);
+        } else if (arg.find("-host") != std::string::npos) {
+            // Just leave ip blank
+        } else if (arg.find("-connect=") != std::string::npos) {
+            ipAddress = arg.substr(9);
+        } else if (arg.find("-name=") != std::string::npos) {
+            name = arg.substr(6);
+        } else if (arg.find("-port=") != std::string::npos) {
+            port = std::stoi(arg.substr(6));
+        } else if (arg.find("-hostport=") != std::string::npos) {
+            hostPort = std::stoi(arg.substr(10));
         }
     }
 
@@ -36,7 +50,7 @@ int main(int argc, char* argv[]) {
     }
 
     window.create(sf::VideoMode(160, 144), "GBS");
-    GameBoy gameboy(window);
+    GameBoy gameboy(window, name, port, ipAddress, hostPort);
     gameboy.LoadGame(game_name);
 
 	bool running = true;
