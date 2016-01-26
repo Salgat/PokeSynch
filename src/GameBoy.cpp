@@ -23,7 +23,7 @@ GameBoy::GameBoy(sf::RenderWindow& window, std::string name, unsigned short port
     if (ipAddress != "") {  
         network.Connect(sf::IpAddress(ipAddress), hostPort, port, name);
     } else {
-        network.Host(hostPort);
+        network.Host(hostPort, name);
     }
 }
 

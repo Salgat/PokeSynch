@@ -124,9 +124,9 @@ public:
     void Initialize(MemoryManagementUnit* mmu_, Display* display_, 
 				    Timer* timer_, Processor* cpu_,  GameBoy* gameboy_, sf::RenderWindow* window_);
                     
-    bool Host(unsigned short port);
+    bool Host(unsigned short port, const std::string& name);
     bool Connect(sf::IpAddress address, unsigned short hostPort, unsigned short port, std::string name);
-    HostGameState Update(const NetworkGameState& localGameState);
+    HostGameState Update(NetworkGameState& localGameState);
 
     NetworkMode networkMode;
     
@@ -140,8 +140,10 @@ private:
     
     sf::UdpSocket socket;
     int uniqueId;
+    std::string name;
     std::unordered_map<int, NetworkId> clients; // UniqueId, NetworkId
                                                 // NOTE: This only holds 1 element (0) if you are a client (the host's NetworkId)
+    std::unordered_map<int, NetworkGameState> clientGameStates; // UniqueId, NetworkGameState
     
     bool SetupSocket(unsigned short port);
     

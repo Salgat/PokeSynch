@@ -77,11 +77,16 @@ sf::Packet& operator <<(sf::Packet& packet, const HostGameState& hostGameState) 
  * Deserializes a HostGameState.
  */
 sf::Packet& operator >>(sf::Packet& packet, HostGameState& hostGameState) {
+    //std::cout << "Deserializing host game state." << std::endl;
     int playerCount;
     packet >> playerCount;
+    hostGameState.playerGameStates.resize(playerCount);
     for (unsigned int index = 0; index < playerCount; ++index) {
+        //std::cout << "Deserializing player game state: " << index << std::endl;
         auto& playerGameState = hostGameState.playerGameStates[index];
+        //std::cout << "Reading player position." << std::endl;
         auto& playerPosition = playerGameState.playerPosition;
+        //std::cout << "Populating the rest of the properties." << std::endl;
         packet >> playerGameState.uniqueId >> playerGameState.name >> playerGameState.currentMap
                >> playerPosition.yPosition >> playerPosition.xPosition 
                >> playerPosition.yBlockPosition >> playerPosition.xBlockPosition; 
@@ -89,12 +94,16 @@ sf::Packet& operator >>(sf::Packet& packet, HostGameState& hostGameState) {
 
     int spriteCount;
     packet >> spriteCount;
+    hostGameState.sprites.resize(spriteCount);
     for (unsigned int index = 0; index < spriteCount; ++index) {
+        //std::cout << "Deserializing sprite: " << index << std::endl;
         auto& sprite = hostGameState.sprites[index];
+        //std::cout << "Populating the rest of the sprite properties: " << sprite.spriteIndex << std::endl;
         packet >> sprite.spriteIndex >> sprite.pictureId >> sprite.moveStatus >> sprite.direction
                >> sprite.yDisplacement >> sprite.xDisplacement >> sprite.yPosition >> sprite.xPosition
                >> sprite.canMove >> sprite.inGrass;    
     }
+    //std::cout << "Finished deserializing host game state." << std::endl;
     
     return packet;
 }
@@ -160,7 +169,8 @@ bool Network::SetupSocket(unsigned short port) {
 /**
  * Returns true after successfully acting as host and listening on the specified port.
  */
-bool Network::Host(unsigned short port) {
+bool Network::Host(unsigned short port, const std::string& name) {
+    this->name = name;
     std::cout << "Attempting to host game." << std::endl;
     networkMode = NetworkMode::CONNECTING;
     if (!SetupSocket(port)) {
@@ -181,6 +191,8 @@ bool Network::Host(unsigned short port) {
  * Returns true after successfully receiving a response from the host.
  */
 bool Network::Connect(sf::IpAddress address, unsigned short hostPort, unsigned short port, std::string name) {
+    this->name = name;
+    
     std::cout << "Attempting to connect to host while listening on port: " << port << std::endl;
     networkMode = NetworkMode::CONNECTING;
     if (socket.bind(port) != sf::Socket::Done)
@@ -240,7 +252,9 @@ bool Network::Connect(sf::IpAddress address, unsigned short hostPort, unsigned s
  * Handle processing any responses received and requests made. Returns null if
  * no updates to state are received.
  */
-HostGameState Network::Update(const NetworkGameState& localGameState) {
+HostGameState Network::Update(NetworkGameState& localGameState) {
+    localGameState.uniqueId = uniqueId;
+    
     if (networkMode == NetworkMode::CONNECTED_AS_HOST) {
         //std::cout << "Updating network as host." << std::endl;
         return HostUpdate(localGameState);
@@ -255,7 +269,7 @@ HostGameState Network::Update(const NetworkGameState& localGameState) {
 HostGameState Network::HostUpdate(const NetworkGameState& localGameState) {
     // Loop through all pending packets
     //std::cout << "HostUpdate starting." << std::endl;
-    std::vector<NetworkGameState> gameState;
+    //std::vector<NetworkGameState> gameState;
     sf::Packet packet;
     sf::IpAddress sender;
     unsigned short port;
@@ -272,7 +286,9 @@ HostGameState Network::HostUpdate(const NetworkGameState& localGameState) {
                 HandleConnectRequest(packet, sender, port);
             } else if (packetType == static_cast<int>(PacketType::NETWORK_GAME_STATE)) {
                 //std::cout << "Adding network game state from client." << std::endl;
-                gameState.push_back(HandleGameStateResponse(packet, sender, port));
+                //gameState.push_back(HandleGameStateResponse(packet, sender, port));
+                auto gameState = HandleGameStateResponse(packet, sender, port);
+                clientGameStates[gameState.uniqueId] = gameState;
             }
         } else if (result == sf::Socket::Disconnected) {
             // TODO Reconnect
@@ -282,8 +298,14 @@ HostGameState Network::HostUpdate(const NetworkGameState& localGameState) {
     }
     
     // Send Host Game State to all clients
-    // TODO: Populate hostGameState from localGameState
+    //std::cout << "Populating host game state." << std::endl;
     HostGameState hostGameState;
+    hostGameState.sprites = localGameState.sprites;
+    for (const auto& gameState : clientGameStates) {
+        hostGameState.playerGameStates.push_back(gameState.second);
+    }
+    
+    //std::cout << "Send the host game state." << std::endl;
     sf::Packet hostGameStatePacket;
     hostGameStatePacket << static_cast<int>(PacketType::HOST_GAME_STATE) << hostGameState;
     for (const auto& client : clients) {
@@ -336,6 +358,7 @@ NetworkGameState Network::HandleGameStateResponse(sf::Packet gameStatePacket, sf
  */
 HostGameState Network::ClientUpdate(const NetworkGameState& localGameState) {
     // Loop through all pending packets
+    //std::cout << "Updating client." << std::endl;
     HostGameState hostGameState;
     sf::Packet packet;
     sf::IpAddress sender;
@@ -352,6 +375,7 @@ HostGameState Network::ClientUpdate(const NetworkGameState& localGameState) {
             } else if (packetType == static_cast<int>(PacketType::HOST_GAME_STATE)) {
                 //std::cout << "Adding host game state from host." << std::endl;
                 packet >> hostGameState;
+                //std::cout << "Finished adding host game state." << std::endl;
             }
         } else if (result == sf::Socket::Disconnected) {
             // TODO
