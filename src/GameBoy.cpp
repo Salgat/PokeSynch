@@ -82,7 +82,30 @@ std::pair<sf::Image, bool> GameBoy::RenderFrame() {
 NetworkGameState GameBoy::CreateGameState() {
     NetworkGameState localGameState;
     
+    localGameState.currentMap = mmu.eram[0xD35E];
     
+    localGameState.playerPosition.yPosition = mmu.eram[0xD361];
+    localGameState.playerPosition.xPosition = mmu.eram[0xD362];
+    localGameState.playerPosition.yBlockPosition = mmu.eram[0xD363];
+    localGameState.playerPosition.xBlockPosition = mmu.eram[0xD364];
+    
+    localGameState.sprites.resize(16);
+    for (uint16_t index = 0; index < 8; ++index) {
+        uint16_t offset = 0xC100 + index*0x10;
+        uint16_t offset2 = 0xC200 + index*0x10;
+        
+        auto& sprite = localGameState.sprites[index];
+        sprite.spriteIndex = index;
+        sprite.pictureId = mmu.eram[offset + 0x0];
+        sprite.moveStatus = mmu.eram[offset + 0x1];
+        sprite.direction = mmu.eram[offset + 0x9];
+        sprite.yDisplacement = mmu.eram[offset2 + 0x2];
+        sprite.xDisplacement = mmu.eram[offset2 + 0x3];
+        sprite.yPosition = mmu.eram[offset2 + 0x4];
+        sprite.xPosition = mmu.eram[offset2 + 0x5];
+        sprite.canMove = mmu.eram[offset2 + 0x6];
+        sprite.inGrass = mmu.eram[offset2 + 0x7];
+    }
     
     return localGameState;
 }
