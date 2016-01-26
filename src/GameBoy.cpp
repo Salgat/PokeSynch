@@ -90,7 +90,7 @@ NetworkGameState GameBoy::CreateGameState() {
     localGameState.playerPosition.xBlockPosition = mmu.eram[0xD364];
     
     localGameState.sprites.resize(16);
-    for (uint16_t index = 0; index < 8; ++index) {
+    for (uint16_t index = 0; index < 16; ++index) {
         uint16_t offset = 0xC100 + index*0x10;
         uint16_t offset2 = 0xC200 + index*0x10;
         
