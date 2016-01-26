@@ -126,7 +126,7 @@ public:
                     
     bool Host(unsigned short port);
     bool Connect(sf::IpAddress address, unsigned short hostPort, unsigned short port, std::string name);
-    HostGameState Update();
+    HostGameState Update(const NetworkGameState& localGameState);
 
     NetworkMode networkMode;
     
@@ -141,14 +141,15 @@ private:
     sf::UdpSocket socket;
     int uniqueId;
     std::unordered_map<int, NetworkId> clients; // UniqueId, NetworkId
+                                                // NOTE: This only holds 1 element (0) if you are a client (the host's NetworkId)
     
     bool SetupSocket(unsigned short port);
     
-    HostGameState HostUpdate();
+    HostGameState HostUpdate(const NetworkGameState& localGameState);
     void HandleConnectRequest(sf::Packet packet, sf::IpAddress sender, unsigned short port);
     NetworkGameState HandleGameStateResponse(sf::Packet gameStatePacket, sf::IpAddress sender, unsigned short port);
     
-    HostGameState ClientUpdate();
+    HostGameState ClientUpdate(const NetworkGameState& localGameState);
     void HandleConnectResponse(sf::Packet gameStatePacket, sf::IpAddress sender, unsigned short port);
 };
 

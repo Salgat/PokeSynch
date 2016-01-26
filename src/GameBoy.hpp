@@ -43,6 +43,8 @@ public:
     Timer timer;
     Input input;
     Network network;
+
+    NetworkGameState CreateGameState();
 };
 
 #endif //GAMEBOYEMULATOR_GAMEBOY_HPP

@@ -40,7 +40,8 @@ void GameBoy::Reset() {
 // Todo: Frame calling v-blank 195-196x per frame??
 std::pair<sf::Image, bool> GameBoy::RenderFrame() {
     // First check for any updates on the network
-    network.Update();
+    NetworkGameState localGameState = CreateGameState();
+    network.Update(localGameState);
     
     bool running = (input.PollEvents())?true:false;
 	cpu.frame_clock = cpu.clock + 17556; // Number of cycles/4 for one frame before v-blank
@@ -76,4 +77,12 @@ std::pair<sf::Image, bool> GameBoy::RenderFrame() {
 	}
 	
 	return std::make_pair(frame, running);
+}
+
+NetworkGameState GameBoy::CreateGameState() {
+    NetworkGameState localGameState;
+    
+    
+    
+    return localGameState;
 }

@@ -226,6 +226,13 @@ bool Network::Connect(sf::IpAddress address, unsigned short hostPort, unsigned s
     connectResponsePacket >> uniqueId;
     networkMode = NetworkMode::CONNECTED_AS_CLIENT;
     socket.setBlocking(false);
+    
+    // Store host's NetworkId
+    NetworkId hostNetworkId;
+    hostNetworkId.address = address;
+    hostNetworkId.port = hostPort;
+    clients[0] = hostNetworkId;
+    
     return true;
 }
 
@@ -233,19 +240,19 @@ bool Network::Connect(sf::IpAddress address, unsigned short hostPort, unsigned s
  * Handle processing any responses received and requests made. Returns null if
  * no updates to state are received.
  */
-HostGameState Network::Update() {
+HostGameState Network::Update(const NetworkGameState& localGameState) {
     if (networkMode == NetworkMode::CONNECTED_AS_HOST) {
         //std::cout << "Updating network as host." << std::endl;
-        return HostUpdate();
+        return HostUpdate(localGameState);
     } else if (networkMode == NetworkMode::CONNECTED_AS_CLIENT) {
         //std::cout << "Updating network as client." << std::endl;
-        return ClientUpdate();
+        return ClientUpdate(localGameState);
     } else {
         throw;
     }
 }
 
-HostGameState Network::HostUpdate() {
+HostGameState Network::HostUpdate(const NetworkGameState& localGameState) {
     // Loop through all pending packets
     //std::cout << "HostUpdate starting." << std::endl;
     std::vector<NetworkGameState> gameState;
@@ -264,6 +271,7 @@ HostGameState Network::HostUpdate() {
             if (packetType == static_cast<int>(PacketType::CONNECT_REQUEST)) {
                 HandleConnectRequest(packet, sender, port);
             } else if (packetType == static_cast<int>(PacketType::NETWORK_GAME_STATE)) {
+                //std::cout << "Adding network game state from client." << std::endl;
                 gameState.push_back(HandleGameStateResponse(packet, sender, port));
             }
         } else if (result == sf::Socket::Disconnected) {
@@ -273,10 +281,15 @@ HostGameState Network::HostUpdate() {
         }
     }
     
-    // TODO: Create a HostGameState from all the client networkGameStates
+    // Send Host Game State to all clients
+    // TODO: Populate hostGameState from localGameState
     HostGameState hostGameState;
-    
-    // TODO: Send the game state out to all clients
+    sf::Packet hostGameStatePacket;
+    hostGameStatePacket << static_cast<int>(PacketType::HOST_GAME_STATE) << hostGameState;
+    for (const auto& client : clients) {
+        const auto& networkId = client.second;
+        socket.send(hostGameStatePacket, networkId.address, networkId.port);
+    }
     
     return hostGameState;
 }
@@ -321,7 +334,7 @@ NetworkGameState Network::HandleGameStateResponse(sf::Packet gameStatePacket, sf
 /**
  * Receives 
  */
-HostGameState Network::ClientUpdate() {
+HostGameState Network::ClientUpdate(const NetworkGameState& localGameState) {
     // Loop through all pending packets
     HostGameState hostGameState;
     sf::Packet packet;
@@ -337,6 +350,7 @@ HostGameState Network::ClientUpdate() {
             if (packetType == static_cast<int>(PacketType::CONNECT_RESPONSE)) {
                 HandleConnectResponse(packet, sender, port);
             } else if (packetType == static_cast<int>(PacketType::HOST_GAME_STATE)) {
+                //std::cout << "Adding host game state from host." << std::endl;
                 packet >> hostGameState;
             }
         } else if (result == sf::Socket::Disconnected) {
@@ -347,6 +361,10 @@ HostGameState Network::ClientUpdate() {
     }
     
     // TODO: Send the game state to the host
+    sf::Packet localGameStatePacket;
+    localGameStatePacket << static_cast<int>(PacketType::NETWORK_GAME_STATE) << localGameState;
+    const auto& networkId = clients[0];
+    socket.send(localGameStatePacket, networkId.address, networkId.port);
     
     return hostGameState;
 }
