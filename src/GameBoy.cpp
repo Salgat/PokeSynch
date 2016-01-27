@@ -115,28 +115,15 @@ NetworkGameState GameBoy::CreateGameState() {
  * Using the host's memory, synchronizes local sprites with host's sprites if on the same map.
  */
 void GameBoy::UpdateLocalGameState(const HostGameState& hostGameState, bool isHost) {
-    //std::cout << "GameSize: " << hostGameState.playerGameStates.size() << " Sprite size: "
-    //          << hostGameState.sprites.size() << std::endl;
     if (hostGameState.playerGameStates.size() == 0 || hostGameState.sprites.size() < 16) {
         return;
     }
     
-    
-    auto selfPositionX = static_cast<int>(mmu.wram[0xd362 & 0x1FFF]);
-    auto selfPositionY = static_cast<int>(mmu.wram[0xd361 & 0x1FFF]);
-    std::cout << "Self position: " << selfPositionX << ", " << selfPositionY << std::endl;
-    /*std::cout << "Host position: " << static_cast<int>(mmu.wram[0xC106 & 0x1FFF]) 
-                << ", " << static_cast<int>(mmu.wram[0xC104 & 0x1FFF]) << std::endl;
-    std::cout << "Delta position: " << static_cast<int>(mmu.wram[0xC106 & 0x1FFF] - mmu.wram[0xC126 & 0x1FFF]) 
-                << ", " << static_cast<int>(mmu.wram[0xC104 & 0x1FFF] - mmu.wram[0xC124 & 0x1FFF]) << std::endl;
-    //return;*/
-    //std::cout << "Host map: " << hostGameState.playerGameStates[0].currentMap
-    //          << " Local Map: " << mmu.wram[0xD35E & 0x1FFF] << std::endl;
-    
     // If on the same map, synchronize sprites
     if (!isHost && hostGameState.playerGameStates[0].currentMap == mmu.wram[0xD35E & 0x1FFF]) {
+        auto selfPositionX = static_cast<int>(mmu.wram[0xd362 & 0x1FFF]);
+        auto selfPositionY = static_cast<int>(mmu.wram[0xd361 & 0x1FFF]);
 
-        //std::cout << "Updating client with host location" << std::endl;
         for (uint16_t index = 1; index < 16; ++index) {
             const auto& sprite = hostGameState.sprites[index];
             uint16_t offset = (0xC100 + index*0x10) & 0x1FFF;
@@ -156,7 +143,6 @@ void GameBoy::UpdateLocalGameState(const HostGameState& hostGameState, bool isHo
             // Calculate and update screen position for each sprite
             auto deltaX = selfPositionX - static_cast<int>(sprite.xPosition) + 4;
             auto deltaY = selfPositionY - static_cast<int>(sprite.yPosition) + 4;
-            if (index == 2) std::cout << "Delta x,y: " << deltaX << ", " << deltaY << std::endl;
             mmu.wram[offset + 0x6] = 64 - deltaX*16;
             mmu.wram[offset + 0x4] = 60 - deltaY*16;
         }
