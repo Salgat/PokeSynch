@@ -45,6 +45,7 @@ public:
     Network network;
 
     NetworkGameState CreateGameState();
+    void UpdateLocalGameState(const HostGameState& hostGameState, bool isHost);
 };
 
 #endif //GAMEBOYEMULATOR_GAMEBOY_HPP

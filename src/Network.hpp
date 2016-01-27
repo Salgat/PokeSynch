@@ -129,6 +129,7 @@ public:
     HostGameState Update(NetworkGameState& localGameState);
 
     NetworkMode networkMode;
+    bool isHost;
     
 private:
     MemoryManagementUnit* mmu;

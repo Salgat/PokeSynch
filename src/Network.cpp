@@ -6,6 +6,8 @@
 #include "Timer.hpp"
 #include "GameBoy.hpp"
 
+void TestPacket(HostGameState hostGameState);
+
 // NOTE: Might want to make the connect logic TCP (gauranteed) and update gamestate logic UDP
 
 /**
@@ -18,7 +20,7 @@ sf::Packet& operator <<(sf::Packet& packet, const NetworkGameState& networkGameS
     packet << playerPosition.yPosition << playerPosition.xPosition 
            << playerPosition.yBlockPosition << playerPosition.xBlockPosition;
 
-    packet << networkGameState.sprites.size();
+    packet << static_cast<unsigned int>(networkGameState.sprites.size());
     for (auto& sprite : networkGameState.sprites) {
         packet << sprite.spriteIndex << sprite.pictureId << sprite.moveStatus << sprite.direction
                << sprite.yDisplacement << sprite.xDisplacement << sprite.yPosition << sprite.xPosition
@@ -39,8 +41,9 @@ sf::Packet& operator >>(sf::Packet& packet, NetworkGameState& networkGameState) 
            >> playerPosition.yBlockPosition >> playerPosition.xBlockPosition;
 
     // TODO: Make sure this part works
-    int spriteCount;
+    unsigned int spriteCount;
     packet >> spriteCount;
+    networkGameState.sprites.resize(spriteCount);
     for (unsigned int index = 0; index < spriteCount; ++index) {
         auto& sprite = networkGameState.sprites[index];
         packet >> sprite.spriteIndex >> sprite.pictureId >> sprite.moveStatus >> sprite.direction
@@ -55,15 +58,18 @@ sf::Packet& operator >>(sf::Packet& packet, NetworkGameState& networkGameState) 
  * Serializes a HostGameState.
  */
 sf::Packet& operator <<(sf::Packet& packet, const HostGameState& hostGameState) {
-    packet << hostGameState.playerGameStates.size();
+    packet << static_cast<unsigned int>(hostGameState.playerGameStates.size());
+    //std::cout << "Serializing host game state player size: " << hostGameState.playerGameStates.size() << std::endl;
     for (auto& playerGameState : hostGameState.playerGameStates) {
         auto& playerPosition = playerGameState.playerPosition;
         packet << playerGameState.uniqueId << playerGameState.name << playerGameState.currentMap
-               << playerPosition.yPosition << playerPosition.xPosition 
-               << playerPosition.yBlockPosition << playerPosition.xBlockPosition; 
+               << playerPosition.yPosition << playerPosition.xPosition
+               << playerPosition.yBlockPosition << playerPosition.xBlockPosition;
     }
 
-    packet << hostGameState.sprites.size();
+    packet << static_cast<unsigned int>(hostGameState.sprites.size());
+    
+    //std::cout << "Serializing host game state sprite size: " << hostGameState.sprites.size() << std::endl;
     for (auto& sprite : hostGameState.sprites) {
         packet << sprite.spriteIndex << sprite.pictureId << sprite.moveStatus << sprite.direction
                << sprite.yDisplacement << sprite.xDisplacement << sprite.yPosition << sprite.xPosition
@@ -78,8 +84,9 @@ sf::Packet& operator <<(sf::Packet& packet, const HostGameState& hostGameState) 
  */
 sf::Packet& operator >>(sf::Packet& packet, HostGameState& hostGameState) {
     //std::cout << "Deserializing host game state." << std::endl;
-    int playerCount;
+    unsigned int playerCount;
     packet >> playerCount;
+    //std::cout << "Deserializing host game state player size: " << playerCount << std::endl;
     hostGameState.playerGameStates.resize(playerCount);
     for (unsigned int index = 0; index < playerCount; ++index) {
         //std::cout << "Deserializing player game state: " << index << std::endl;
@@ -92,8 +99,9 @@ sf::Packet& operator >>(sf::Packet& packet, HostGameState& hostGameState) {
                >> playerPosition.yBlockPosition >> playerPosition.xBlockPosition; 
     }
 
-    int spriteCount;
+    unsigned int spriteCount;
     packet >> spriteCount;
+    //std::cout << "Deserializing host game state sprite size: " << spriteCount << std::endl;
     hostGameState.sprites.resize(spriteCount);
     for (unsigned int index = 0; index < spriteCount; ++index) {
         //std::cout << "Deserializing sprite: " << index << std::endl;
@@ -171,6 +179,7 @@ bool Network::SetupSocket(unsigned short port) {
  */
 bool Network::Host(unsigned short port, const std::string& name) {
     this->name = name;
+    isHost = true;
     std::cout << "Attempting to host game." << std::endl;
     networkMode = NetworkMode::CONNECTING;
     if (!SetupSocket(port)) {
@@ -192,6 +201,7 @@ bool Network::Host(unsigned short port, const std::string& name) {
  */
 bool Network::Connect(sf::IpAddress address, unsigned short hostPort, unsigned short port, std::string name) {
     this->name = name;
+    isHost = false;
     
     std::cout << "Attempting to connect to host while listening on port: " << port << std::endl;
     networkMode = NetworkMode::CONNECTING;
@@ -254,6 +264,7 @@ bool Network::Connect(sf::IpAddress address, unsigned short hostPort, unsigned s
  */
 HostGameState Network::Update(NetworkGameState& localGameState) {
     localGameState.uniqueId = uniqueId;
+    localGameState.name = name;
     
     if (networkMode == NetworkMode::CONNECTED_AS_HOST) {
         //std::cout << "Updating network as host." << std::endl;
@@ -301,16 +312,23 @@ HostGameState Network::HostUpdate(const NetworkGameState& localGameState) {
     //std::cout << "Populating host game state." << std::endl;
     HostGameState hostGameState;
     hostGameState.sprites = localGameState.sprites;
+    hostGameState.playerGameStates.push_back(localGameState); // Host is the first
     for (const auto& gameState : clientGameStates) {
         hostGameState.playerGameStates.push_back(gameState.second);
     }
     
+    //TestPacket(hostGameState);
+    
     //std::cout << "Send the host game state." << std::endl;
     sf::Packet hostGameStatePacket;
     hostGameStatePacket << static_cast<int>(PacketType::HOST_GAME_STATE) << hostGameState;
+    
+    int index = 0;
     for (const auto& client : clients) {
+        //std::cout << "Sending packet: " << index << std::endl;
         const auto& networkId = client.second;
         socket.send(hostGameStatePacket, networkId.address, networkId.port);
+        ++index;
     }
     
     return hostGameState;
@@ -376,6 +394,8 @@ HostGameState Network::ClientUpdate(const NetworkGameState& localGameState) {
                 //std::cout << "Adding host game state from host." << std::endl;
                 packet >> hostGameState;
                 //std::cout << "Finished adding host game state." << std::endl;
+                
+                //TestPacket(hostGameState);
             }
         } else if (result == sf::Socket::Disconnected) {
             // TODO
@@ -400,4 +420,68 @@ void Network::HandleConnectResponse(sf::Packet gameStatePacket, sf::IpAddress se
     // TODO: Normally this should only be handled during the connect phase, but need to account for this
     // on a re-sent UDP packet for example.
     throw;
+}
+
+/* TEST SECTION */
+void TestPacket(HostGameState hostGameState) {
+    static bool hasDisplayed = false;
+    if (!hasDisplayed) {
+        sf::Packet packet;
+        //packet << hostGameState;
+        packet << static_cast<unsigned int>(hostGameState.playerGameStates.size());
+        std::cout << "Serializing host game state player size: " << hostGameState.playerGameStates.size() << std::endl;
+        /*for (auto& playerGameState : hostGameState.playerGameStates) {
+            auto& playerPosition = playerGameState.playerPosition;
+            packet << playerGameState.uniqueId << playerGameState.name << playerGameState.currentMap
+                << playerPosition.yPosition << playerPosition.xPosition
+                << playerPosition.yBlockPosition << playerPosition.xBlockPosition;
+        }
+
+        packet << hostGameState.sprites.size();
+        
+        std::cout << "Serializing host game state sprite size: " << hostGameState.sprites.size() << std::endl;
+        for (auto& sprite : hostGameState.sprites) {
+            packet << sprite.spriteIndex << sprite.pictureId << sprite.moveStatus << sprite.direction
+                << sprite.yDisplacement << sprite.xDisplacement << sprite.yPosition << sprite.xPosition
+                << sprite.canMove << sprite.inGrass;    
+        }*/
+        
+        
+        
+        HostGameState copiedGameState;
+        //packet >> copiedGameState;
+        unsigned int playerCount;
+        packet >> playerCount;
+        std::cout << "Deserializing host game state player size: " << playerCount << std::endl;
+        /*copiedGameState.playerGameStates.resize(playerCount);
+        for (unsigned int index = 0; index < playerCount; ++index) {
+            //std::cout << "Deserializing player game state: " << index << std::endl;
+            auto& playerGameState = copiedGameState.playerGameStates[index];
+            //std::cout << "Reading player position." << std::endl;
+            auto& playerPosition = playerGameState.playerPosition;
+            //std::cout << "Populating the rest of the properties." << std::endl;
+            packet >> playerGameState.uniqueId >> playerGameState.name >> playerGameState.currentMap
+                >> playerPosition.yPosition >> playerPosition.xPosition 
+                >> playerPosition.yBlockPosition >> playerPosition.xBlockPosition; 
+        }
+
+        int spriteCount;
+        packet >> spriteCount;
+        std::cout << "Deserializing host game state sprite size: " << spriteCount << std::endl;
+        copiedGameState.sprites.resize(spriteCount);
+        for (unsigned int index = 0; index < spriteCount; ++index) {
+            //std::cout << "Deserializing sprite: " << index << std::endl;
+            auto& sprite = copiedGameState.sprites[index];
+            //std::cout << "Populating the rest of the sprite properties: " << sprite.spriteIndex << std::endl;
+            packet >> sprite.spriteIndex >> sprite.pictureId >> sprite.moveStatus >> sprite.direction
+                >> sprite.yDisplacement >> sprite.xDisplacement >> sprite.yPosition >> sprite.xPosition
+                >> sprite.canMove >> sprite.inGrass;    
+        }*/
+        //std::cout << "Finished deserializing host game state." << std::endl;
+        
+        std::cout << "playerGameStates: " << hostGameState.playerGameStates.size() << ", " << copiedGameState.playerGameStates.size() << std::endl;
+        std::cout << "sprites: " << hostGameState.sprites.size() << ", " << copiedGameState.sprites.size() << std::endl;
+        
+        hasDisplayed = true;
+    }
 }
