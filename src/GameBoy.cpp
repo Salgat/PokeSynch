@@ -124,11 +124,41 @@ void GameBoy::UpdateLocalGameState(const HostGameState& hostGameState, bool isHo
         auto selfPositionX = static_cast<int>(mmu.wram[0xd362 & 0x1FFF]);
         auto selfPositionY = static_cast<int>(mmu.wram[0xd361 & 0x1FFF]);
 
+        auto playerMovementX = static_cast<unsigned int>(mmu.wram[0xc105 & 0x1FFF]);
+        auto playerMovementY = static_cast<unsigned int>(mmu.wram[0xc103 & 0x1FFF]);
+        
+        // Calculate movement offset
+        if (playerMovementX == 0x01 || playerMovementY == 0x01) {
+            movementCounter += 1;
+            if (movementCounter >= 1) {
+                playerOffset -= 1;
+                movementCounter = 0;
+            }
+        } else if (playerMovementX == 0xff || playerMovementY == 0xff) {
+            movementCounter += 1;
+            if (movementCounter >= 1) {
+                playerOffset += 1;
+                movementCounter = 0;
+            }
+        } else {
+            movementCounter = 0;
+            playerOffset = 0;
+        }
+        if (playerOffset > 16 || playerOffset < -16) playerOffset = 0;
+
+        int playerOffsetX = 0;
+        int playerOffsetY = 0;
+        if (playerMovementX != 0x00) {
+            playerOffsetX = playerOffset;
+        } else if (playerMovementY != 0x00) {
+            playerOffsetY = playerOffset;
+        }
+
+        auto numberOfSprites = static_cast<uint16_t>(mmu.wram[0xd4e1 & 0x1fff]);
         for (uint16_t index = 1; index < 16; ++index) {
             const auto& sprite = hostGameState.sprites[index];
             uint16_t offset = (0xC100 + index*0x10) & 0x1FFF;
             uint16_t offset2 = (0xC200 + index*0x10) & 0x1FFF;
-            std::cout << "Offset: " << static_cast<unsigned int>(offset) << std::endl;
             
             mmu.wram[offset + 0x0] = sprite.pictureId;
             //mmu.wram[offset + 0x1] = sprite.moveStatus;
@@ -137,14 +167,27 @@ void GameBoy::UpdateLocalGameState(const HostGameState& hostGameState, bool isHo
             //mmu.wram[offset2 + 0x3] = sprite.xDisplacement;
             mmu.wram[offset2 + 0x4] = sprite.yPosition;
             mmu.wram[offset2 + 0x5] = sprite.xPosition;
-            //mmu.wram[offset2 + 0x6] = sprite.canMove;
+            
+            // Instructs all NPCs not to move on their own
+            mmu.wram[offset2 + 0x6] = 0xff;
+            //mmu.wram[offset2 + 0x8] = 0xff;
+            mmu.wram[offset + 0x1] = 0x2; // If set to 0x3, shows sprite as walking
             //mmu.wram[offset2 + 0x7] = sprite.inGrass;
             
             // Calculate and update screen position for each sprite
             auto deltaX = selfPositionX - static_cast<int>(sprite.xPosition) + 4;
             auto deltaY = selfPositionY - static_cast<int>(sprite.yPosition) + 4;
-            mmu.wram[offset + 0x6] = 64 - deltaX*16;
-            mmu.wram[offset + 0x4] = 60 - deltaY*16;
+            mmu.wram[offset + 0x6] = 64 - deltaX*16 + playerOffsetX;
+            mmu.wram[offset + 0x4] = 60 - deltaY*16 + playerOffsetY;
+            
+            // Can use 0xc103 and 0xc105 to know when the player is walking which is added
+            // or subtracted from all the other sprite pixel positions (this offset is mod 16)
+            // NOTE: UP and LEFT are 0xFF (255) while DOWN and RIGHT are 0x1 (1)
+            
+            // Update sprite walking animation (this must be done manually)
+            if (mmu.wram[0xcf0c & 0x1fff] == 0) {
+                
+            }
         }
     }
 }

@@ -21,6 +21,14 @@
 #include "Network.hpp"
 
 /**
+ * Holds meta data related to the sprites.
+ */
+struct LocalSpriteState {
+    int frame;
+    int animationCounter;
+};
+
+/**
  * Emulates a GameBoy, outputting visuals to an sf::Image (160x144 pixels)
  */
 class GameBoy {
@@ -46,6 +54,9 @@ public:
 
     NetworkGameState CreateGameState();
     void UpdateLocalGameState(const HostGameState& hostGameState, bool isHost);
+    
+    unsigned int movementCounter;
+    int playerOffset;
 };
 
 #endif //GAMEBOYEMULATOR_GAMEBOY_HPP
