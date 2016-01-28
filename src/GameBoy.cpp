@@ -145,6 +145,7 @@ void GameBoy::UpdateLocalGameState(const HostGameState& hostGameState, bool isHo
             playerOffset = 0;
         }
         if (playerOffset > 16 || playerOffset < -16) playerOffset = 0;
+        if (oldPositionX != selfPositionX || oldPositionY != selfPositionY) playerOffset = 0;
 
         int playerOffsetX = 0;
         int playerOffsetY = 0;
@@ -179,15 +180,18 @@ void GameBoy::UpdateLocalGameState(const HostGameState& hostGameState, bool isHo
             auto deltaY = selfPositionY - static_cast<int>(sprite.yPosition) + 4;
             mmu.wram[offset + 0x6] = 64 - deltaX*16 + playerOffsetX;
             mmu.wram[offset + 0x4] = 60 - deltaY*16 + playerOffsetY;
-            
-            // Can use 0xc103 and 0xc105 to know when the player is walking which is added
-            // or subtracted from all the other sprite pixel positions (this offset is mod 16)
-            // NOTE: UP and LEFT are 0xFF (255) while DOWN and RIGHT are 0x1 (1)
-            
-            // Update sprite walking animation (this must be done manually)
-            if (mmu.wram[0xcf0c & 0x1fff] == 0) {
-                
-            }
+            mmu.ignoreMemoryWrites[static_cast<uint16_t>(offset + 0x6)] = true;
+            mmu.ignoreMemoryWrites[static_cast<uint16_t>(offset + 0x4)] = true;
+        }
+        
+        oldPositionX = selfPositionX;
+        oldPositionY = selfPositionY;
+    } else {
+        // No longer matching host, release all memory protections
+        for (uint16_t index = 1; index < 16; ++index) {
+            uint16_t offset = (0xC100 + index*0x10) & 0x1FFF;
+            mmu.ignoreMemoryWrites.erase(static_cast<uint16_t>(offset + 0x6));
+            mmu.ignoreMemoryWrites.erase(static_cast<uint16_t>(offset + 0x4));
         }
     }
 }

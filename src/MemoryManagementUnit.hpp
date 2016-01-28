@@ -9,6 +9,7 @@
 #include <vector>
 #include <array>
 #include <string>
+#include <unordered_map>
 
 struct MemoryBankController {
     unsigned int rom_bank = 1; // Current bank selected
@@ -88,6 +89,9 @@ public:
     uint16_t ReadWord(uint16_t address);
     void WriteByte(uint16_t address, uint8_t value);
     void WriteWord(uint16_t address, uint16_t value);
+    
+    // Anything that has a key is ignored for writes
+    std::unordered_map<uint16_t, bool> ignoreMemoryWrites;
 
 private:
     Processor* cpu;

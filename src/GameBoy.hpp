@@ -57,6 +57,8 @@ public:
     
     unsigned int movementCounter;
     int playerOffset;
+    int oldPositionX;
+    int oldPositionY;
 };
 
 #endif //GAMEBOYEMULATOR_GAMEBOY_HPP

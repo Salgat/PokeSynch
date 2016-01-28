@@ -469,6 +469,8 @@ uint16_t MemoryManagementUnit::ReadWord(uint16_t address) {
  * Writes a single byte to memory.
  */
 void MemoryManagementUnit::WriteByte(uint16_t address, uint8_t value) {
+    if (ignoreMemoryWrites.count(address)) return;
+    
     switch(address & 0xF000) {
         // ROM and RAM configuration
         case 0x0000:
