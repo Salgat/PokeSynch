@@ -128,13 +128,14 @@ void GameBoy::UpdateLocalGameState(const HostGameState& hostGameState, bool isHo
         auto playerMovementY = static_cast<unsigned int>(mmu.wram[0xc103 & 0x1FFF]);
         
         // Calculate movement offset
-        if (playerMovementX == 0x01 || playerMovementY == 0x01) {
+        bool collisionInFront = CollisionInFront();
+        if (!collisionInFront && (playerMovementX == 0x01 || playerMovementY == 0x01)) {
             movementCounter += 1;
             if (movementCounter >= 1) {
                 playerOffset -= 1;
                 movementCounter = 0;
             }
-        } else if (playerMovementX == 0xff || playerMovementY == 0xff) {
+        } else if (!collisionInFront && (playerMovementX == 0xff || playerMovementY == 0xff)) {
             movementCounter += 1;
             if (movementCounter >= 1) {
                 playerOffset += 1;
@@ -154,7 +155,7 @@ void GameBoy::UpdateLocalGameState(const HostGameState& hostGameState, bool isHo
         } else if (playerMovementY != 0x00) {
             playerOffsetY = playerOffset;
         }
-
+        
         auto numberOfSprites = static_cast<uint16_t>(mmu.wram[0xd4e1 & 0x1fff]);
         for (uint16_t index = 1; index < 16; ++index) {
             const auto& sprite = hostGameState.sprites[index];
@@ -162,16 +163,12 @@ void GameBoy::UpdateLocalGameState(const HostGameState& hostGameState, bool isHo
             uint16_t offset2 = (0xC200 + index*0x10) & 0x1FFF;
             
             mmu.wram[offset + 0x0] = sprite.pictureId;
-            //mmu.wram[offset + 0x1] = sprite.moveStatus;
             mmu.wram[offset + 0x9] = sprite.direction;
-            //mmu.wram[offset2 + 0x2] = sprite.yDisplacement;
-            //mmu.wram[offset2 + 0x3] = sprite.xDisplacement;
             mmu.wram[offset2 + 0x4] = sprite.yPosition;
             mmu.wram[offset2 + 0x5] = sprite.xPosition;
             
             // Instructs all NPCs not to move on their own
             mmu.wram[offset2 + 0x6] = 0xff;
-            //mmu.wram[offset2 + 0x8] = 0xff;
             mmu.wram[offset + 0x1] = 0x2; // If set to 0x3, shows sprite as walking
             //mmu.wram[offset2 + 0x7] = sprite.inGrass;
             
@@ -194,4 +191,47 @@ void GameBoy::UpdateLocalGameState(const HostGameState& hostGameState, bool isHo
             mmu.ignoreMemoryWrites.erase(static_cast<uint16_t>(offset + 0x4));
         }
     }
+}
+
+/**
+ * Returns true if there is a collision in front of the player sprite.
+ */
+bool GameBoy::CollisionInFront() {
+    int tileOnPlayer = static_cast<int>(mmu.wram[0xcf0e&0x1fff]);
+    int tileFrontOfPlayer = static_cast<int>(mmu.wram[0xcfc6&0x1fff]);
+    bool collision = false;
+    int collisionPointer = static_cast<int>(mmu.wram[0xD530&0x1fff]) + (static_cast<int>(mmu.wram[0xD531&0x1fff])<<8);
+    int count = 0;
+    
+    /*
+    // TODO: Need to detect if player is in proper map to do this comparison
+    if ((tileOnPlayer == 0x20 && tileFrontOfPlayer == 0x05) ||
+        (tileOnPlayer == 0x41 && tileFrontOfPlayer == 0x05) ||
+        (tileOnPlayer == 0x30 && tileFrontOfPlayer == 0x2E) ||
+        (tileOnPlayer == 0x2A && tileFrontOfPlayer == 0x05) ||
+        (tileOnPlayer == 0x05 && tileFrontOfPlayer == 0x21) ||
+        (tileOnPlayer == 0x52 && tileFrontOfPlayer == 0x2E) ||
+        (tileOnPlayer == 0x55 && tileFrontOfPlayer == 0x2E) ||
+        (tileOnPlayer == 0x56 && tileFrontOfPlayer == 0x2E) ||
+        (tileOnPlayer == 0x20 && tileFrontOfPlayer == 0x2E) ||
+        (tileOnPlayer == 0x5E && tileFrontOfPlayer == 0x2E) ||
+        (tileOnPlayer == 0x5F && tileFrontOfPlayer == 0x2E) ||
+        (tileOnPlayer == 0x14 && tileFrontOfPlayer == 0x2E) ||
+        (tileOnPlayer == 0x48 && tileFrontOfPlayer == 0x2E) ||
+        (tileOnPlayer == 0x14 && tileFrontOfPlayer == 0x05)) {
+            collision = true;
+    }*/
+    
+    // If there is a match to the collision tile list, the tile is not passable
+    while (collision == false) {
+        int tile = static_cast<int>(mmu.ReadByte(static_cast<uint16_t>(collisionPointer&0xFFFF)));
+        ++collisionPointer;
+        ++count;
+        if (tile == tileFrontOfPlayer) {
+            return false;
+        }
+        if (tile == 0xff) break;
+    }
+    
+    return true;
 }

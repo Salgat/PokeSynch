@@ -55,6 +55,8 @@ public:
     NetworkGameState CreateGameState();
     void UpdateLocalGameState(const HostGameState& hostGameState, bool isHost);
     
+    bool CollisionInFront();
+    
     unsigned int movementCounter;
     int playerOffset;
     int oldPositionX;
