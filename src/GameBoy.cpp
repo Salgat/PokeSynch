@@ -177,10 +177,11 @@ void GameBoy::UpdateLocalGameState(const HostGameState& hostGameState, bool isHo
             auto deltaY = selfPositionY - static_cast<int>(sprite.yPosition) + 4;
             mmu.wram[offset + 0x6] = 64 - deltaX*16 + playerOffsetX;
             mmu.wram[offset + 0x4] = 60 - deltaY*16 + playerOffsetY;
-            mmu.ignoreMemoryWrites[static_cast<uint16_t>(offset + 0x6)] = true;
-            mmu.ignoreMemoryWrites[static_cast<uint16_t>(offset + 0x4)] = true;
+            mmu.ignoreMemoryWrites.insert(static_cast<uint16_t>(offset + 0x6));
+            mmu.ignoreMemoryWrites.insert(static_cast<uint16_t>(offset + 0x4));
         }
         
+        // TODO: If collision exists revert to oldPosition.
         oldPositionX = selfPositionX;
         oldPositionY = selfPositionY;
     } else {
@@ -202,6 +203,10 @@ bool GameBoy::CollisionInFront() {
     bool collision = false;
     int collisionPointer = static_cast<int>(mmu.wram[0xD530&0x1fff]) + (static_cast<int>(mmu.wram[0xD531&0x1fff])<<8);
     int count = 0;
+    
+    // TODO: For collision detect with sprites, iterate through the 16 for their positions and see if the player's direction
+    //       plus one unit is the position of any of the sprites. If so, prevent the player from moving manually (to prevent
+    //       things like walking through other sprites).
     
     /*
     // TODO: Need to detect if player is in proper map to do this comparison
