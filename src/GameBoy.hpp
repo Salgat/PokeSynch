@@ -55,12 +55,10 @@ public:
     NetworkGameState CreateGameState();
     void UpdateLocalGameState(const HostGameState& hostGameState, bool isHost);
     
-    bool CollisionInFront();
+    bool TileCollisionInFront(const HostGameState& hostGameState);
+    bool SpriteCollisionInFront(const HostGameState& hostGameState);
     
-    unsigned int movementCounter;
-    int playerOffset;
-    int oldPositionX;
-    int oldPositionY;
+    bool synchronizedMap;
 };
 
 #endif //GAMEBOYEMULATOR_GAMEBOY_HPP

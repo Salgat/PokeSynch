@@ -35,6 +35,8 @@ void GameBoy::Reset() {
     cpu.Reset();
     mmu.Reset();
     timer.Reset();
+    
+    synchronizedMap = false;
 }
 
 // Todo: Frame calling v-blank 195-196x per frame??
@@ -115,98 +117,85 @@ NetworkGameState GameBoy::CreateGameState() {
  * Using the host's memory, synchronizes local sprites with host's sprites if on the same map.
  */
 void GameBoy::UpdateLocalGameState(const HostGameState& hostGameState, bool isHost) {
+    
+    //mmu.WriteByte(0xc226, 0x7);
+    //mmu.WriteByte(0xc224, 0xd);
+    /*
+    auto spriteMoving = mmu.ReadByte(0xC121);
+    mmu.WriteByte(0xd4e4+0x2*1, 0xd0);
+    mmu.WriteByte(0xc226, 0xfe);
+    if (spriteMoving == 0x2) {
+        mmu.WriteByte(0xc121, 0x1);
+    }
+    mmu.ignoreMemoryWrites.insert(static_cast<uint16_t>(0xd4e4+0x2*2));
+    */
+    
     if (hostGameState.playerGameStates.size() == 0 || hostGameState.sprites.size() < 16) {
         return;
     }
     
     // If on the same map, synchronize sprites
     if (!isHost && hostGameState.playerGameStates[0].currentMap == mmu.wram[0xD35E & 0x1FFF]) {
-        auto selfPositionX = static_cast<int>(mmu.wram[0xd362 & 0x1FFF]);
-        auto selfPositionY = static_cast<int>(mmu.wram[0xd361 & 0x1FFF]);
-
-        auto playerMovementX = static_cast<unsigned int>(mmu.wram[0xc105 & 0x1FFF]);
-        auto playerMovementY = static_cast<unsigned int>(mmu.wram[0xc103 & 0x1FFF]);
-        
-        // Calculate movement offset
-        bool collisionInFront = CollisionInFront();
-        if (!collisionInFront && (playerMovementX == 0x01 || playerMovementY == 0x01)) {
-            movementCounter += 1;
-            if (movementCounter >= 1) {
-                playerOffset -= 1;
-                movementCounter = 0;
-            }
-        } else if (!collisionInFront && (playerMovementX == 0xff || playerMovementY == 0xff)) {
-            movementCounter += 1;
-            if (movementCounter >= 1) {
-                playerOffset += 1;
-                movementCounter = 0;
-            }
-        } else {
-            movementCounter = 0;
-            playerOffset = 0;
-        }
-        if (playerOffset > 16 || playerOffset < -16) playerOffset = 0;
-        if (oldPositionX != selfPositionX || oldPositionY != selfPositionY) playerOffset = 0;
-
-        int playerOffsetX = 0;
-        int playerOffsetY = 0;
-        if (playerMovementX != 0x00) {
-            playerOffsetX = playerOffset;
-        } else if (playerMovementY != 0x00) {
-            playerOffsetY = playerOffset;
-        }
-        
         auto numberOfSprites = static_cast<uint16_t>(mmu.wram[0xd4e1 & 0x1fff]);
         for (uint16_t index = 1; index < 16; ++index) {
             const auto& sprite = hostGameState.sprites[index];
-            uint16_t offset = (0xC100 + index*0x10) & 0x1FFF;
-            uint16_t offset2 = (0xC200 + index*0x10) & 0x1FFF;
+            uint16_t offset = (0xC100 + index*0x10);
+            uint16_t offset2 = (0xC200 + index*0x10);
             
-            mmu.wram[offset + 0x0] = sprite.pictureId;
-            mmu.wram[offset + 0x9] = sprite.direction;
-            mmu.wram[offset2 + 0x4] = sprite.yPosition;
-            mmu.wram[offset2 + 0x5] = sprite.xPosition;
+            if (!synchronizedMap) {
+                // The first time a player joins another's map, synchronize all sprites
+                std::cout << "Sync position." << std::endl;
+                mmu.WriteByte(offset2 + 0x4, sprite.yPosition);
+                mmu.WriteByte(offset2 + 0x5, sprite.xPosition);
             
-            // Instructs all NPCs not to move on their own
-            mmu.wram[offset2 + 0x6] = 0xff;
-            mmu.wram[offset + 0x1] = 0x2; // If set to 0x3, shows sprite as walking
-            //mmu.wram[offset2 + 0x7] = sprite.inGrass;
-            
-            // Calculate and update screen position for each sprite
-            auto deltaX = selfPositionX - static_cast<int>(sprite.xPosition) + 4;
-            auto deltaY = selfPositionY - static_cast<int>(sprite.yPosition) + 4;
-            mmu.wram[offset + 0x6] = 64 - deltaX*16 + playerOffsetX;
-            mmu.wram[offset + 0x4] = 60 - deltaY*16 + playerOffsetY;
-            mmu.ignoreMemoryWrites.insert(static_cast<uint16_t>(offset + 0x6));
-            mmu.ignoreMemoryWrites.insert(static_cast<uint16_t>(offset + 0x4));
+                synchronizedMap = true;
+            } else {
+                if (mmu.ReadByte(offset2 + 0x5) != sprite.xPosition ||
+                    mmu.ReadByte(offset2 + 0x4) != sprite.yPosition) {
+                    // If position differs from ingame, instruct NPC to move in that direction
+                    uint8_t direction = 0x0;
+                    if (mmu.ReadByte(offset2 + 0x5) > sprite.xPosition) {
+                        // Move Left
+                        direction = 0xd2;
+                    } else if (mmu.ReadByte(offset2 + 0x5) < sprite.xPosition) {
+                        // Move Right
+                        direction = 0xd3;
+                    } else if (mmu.ReadByte(offset2 + 0x4) > sprite.yPosition) {
+                        // Move Up
+                        direction = 0xd1;
+                    } else if (mmu.ReadByte(offset2 + 0x4) < sprite.yPosition) {
+                        // Move Down
+                        direction = 0xd0;
+                    }
+                    
+                    
+                    auto spriteMoving = mmu.ReadByte(offset + 0x1);
+                    mmu.WriteByte(0xd4e4+0x2*(index-1), direction);
+                    mmu.WriteByte(offset2 + 0x6, 0xfe);
+                    if (spriteMoving == 0x2) {
+                        mmu.WriteByte(offset+0x1, 0x1);
+                    }
+                } else {
+                    // Instructs NPC not to move on its own
+                    mmu.WriteByte(offset + 0x9, sprite.direction);
+                    mmu.WriteByte(offset2 + 0x6, 0xff);
+                }
+            }
         }
-        
-        // TODO: If collision exists revert to oldPosition.
-        oldPositionX = selfPositionX;
-        oldPositionY = selfPositionY;
     } else {
-        // No longer matching host, release all memory protections
-        for (uint16_t index = 1; index < 16; ++index) {
-            uint16_t offset = (0xC100 + index*0x10) & 0x1FFF;
-            mmu.ignoreMemoryWrites.erase(static_cast<uint16_t>(offset + 0x6));
-            mmu.ignoreMemoryWrites.erase(static_cast<uint16_t>(offset + 0x4));
-        }
+        synchronizedMap = false;
     }
 }
 
 /**
- * Returns true if there is a collision in front of the player sprite.
+ * Returns true if there is a tile collision in front of the player sprite.
  */
-bool GameBoy::CollisionInFront() {
+bool GameBoy::TileCollisionInFront(const HostGameState& hostGameState) {
     int tileOnPlayer = static_cast<int>(mmu.wram[0xcf0e&0x1fff]);
     int tileFrontOfPlayer = static_cast<int>(mmu.wram[0xcfc6&0x1fff]);
     bool collision = false;
     int collisionPointer = static_cast<int>(mmu.wram[0xD530&0x1fff]) + (static_cast<int>(mmu.wram[0xD531&0x1fff])<<8);
     int count = 0;
-    
-    // TODO: For collision detect with sprites, iterate through the 16 for their positions and see if the player's direction
-    //       plus one unit is the position of any of the sprites. If so, prevent the player from moving manually (to prevent
-    //       things like walking through other sprites).
     
     /*
     // TODO: Need to detect if player is in proper map to do this comparison
@@ -239,4 +228,51 @@ bool GameBoy::CollisionInFront() {
     }
     
     return true;
+}
+
+/**
+ * Returns true if there is a sprite collision in front of the player sprite.
+ */
+bool GameBoy::SpriteCollisionInFront(const HostGameState& hostGameState) {
+    // TODO: For collision detect with sprites, iterate through the 16 for their positions and see if the player's direction
+    //       plus one unit is the position of any of the sprites. If so, prevent the player from moving manually (to prevent
+    //       things like walking through other sprites).
+    auto positionInFrontX = static_cast<int>(mmu.wram[0xd362 & 0x1FFF]);
+    auto positionInFrontY = static_cast<int>(mmu.wram[0xd361 & 0x1FFF]);
+    int playerDirection = hostGameState.sprites[0].direction;
+    switch (playerDirection) {
+        case 0x0:
+            // Down
+            positionInFrontX += 1;
+            break;
+        case 0x4:
+            // Up
+            positionInFrontX -= 1;
+            break;
+        case 0x8:
+            // Left
+            positionInFrontY -= 1;
+            break;
+        case 0xc:
+            // Right
+            positionInFrontY += 1;
+            break;    
+    }
+    
+    //std::cout << "Player position: " << positionInFrontX << ", " << positionInFrontY << std::endl;
+    
+    for (uint16_t index = 1; index < 16; ++index) {
+        const auto& sprite = hostGameState.sprites[index];
+        uint16_t offset = (0xC100 + index*0x10) & 0x1FFF;
+        uint16_t offset2 = (0xC200 + index*0x10) & 0x1FFF;
+        
+        //std::cout << "Sprite position: " << sprite.xPosition << ", " << sprite.yPosition << std::endl;
+        
+        if (static_cast<int>(sprite.yPosition)-4 == positionInFrontY &&
+            static_cast<int>(sprite.xPosition)-4 == positionInFrontX) {
+                return true;
+        }
+    }
+    
+    return false;
 }
