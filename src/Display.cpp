@@ -425,7 +425,7 @@ sf::Image Display::DisplayPlayers(const HostGameState& hostGameState) {
         // Player is on screen, get his frame index and draw that frame
         // TODO: Determine if player is on bike, swimming, or just walking
         // Also need to determine direction, etc
-        int frameNumber = 0;
+        int frameNumber = 3;
         if (spriteFrame.count(playerGameState.uniqueId)) {
             frameNumber = spriteFrame[playerGameState.uniqueId];
             if (frameNumber >= 6) {
@@ -436,9 +436,10 @@ sf::Image Display::DisplayPlayers(const HostGameState& hostGameState) {
             spriteFrame[playerGameState.uniqueId] = frameNumber;
         }
         
+        // Note: local player's position is 60x64 pixels
         auto pixelPositionX = 0;
         auto pixelPositionY = 0;
-        DrawSpriteToImage(spriteImages[0], frameNumber, pixelPositionX, pixelPositionY);
+        DrawSpriteToImage(spriteImages[0], frameNumber, pixelPositionX, pixelPositionY, false);
     }
     
     return frame;
@@ -447,12 +448,17 @@ sf::Image Display::DisplayPlayers(const HostGameState& hostGameState) {
 /**
  * Draw the frame of the provided sprite to the current image at the provided coordinates.
  */
- void Display::DrawSpriteToImage(sf::Image spriteImage, int frameNumber, int pixelPositionX, int pixelPositionY) {
+ void Display::DrawSpriteToImage(sf::Image spriteImage, int frameNumber, int pixelPositionX, int pixelPositionY, bool flipHorizontal) {
      int yOffset = 16*frameNumber;
      for (int x = 0; x < 16; ++x) {
          for (int y = 0; y < 16; ++y) {
              // Draw the pixels to the image
-             auto pixel = spriteImages[0].getPixel(x, y+yOffset);
+             sf::Color pixel;
+             if (!flipHorizontal) {
+                pixel = spriteImages[0].getPixel(x, y+yOffset);
+             } else {
+                pixel = spriteImages[0].getPixel(15-x, y+yOffset);
+             }
              if (pixel.a == 255) {
                  // Only draw non-transparent pixels
                 frame.setPixel(x+pixelPositionX, y+pixelPositionY, pixel);

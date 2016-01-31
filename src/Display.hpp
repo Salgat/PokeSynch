@@ -90,7 +90,7 @@ private:
     void DrawSprites(uint8_t lcd_control, int line_number, std::vector<Sprite*> const& sprites);
     
     // Synchronize Logic
-    void DrawSpriteToImage(const sf::Texture& texture, int frame);
+    void DrawSpriteToImage(sf::Image spriteImage, int frameNumber, int pixelPositionX, int pixelPositionY, bool flipHorizontal);
 };
 
 #endif //GAMEBOYEMULATOR_DISPLAY_HPP
