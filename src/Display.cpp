@@ -18,6 +18,18 @@ Display::Display() {
 void Display::Initialize(Processor* cpu_, MemoryManagementUnit* mmu_) {
     cpu = cpu_;
     mmu = mmu_;
+    
+    // Load textures 
+    std::array<std::string, 1> textureFileNames = {"../../data/sprites/red.png"};
+    for (const auto& fileName : textureFileNames) {
+        sf::Texture texture;
+        texture.loadFromFile(fileName);
+        spriteTextures.push_back(texture);
+        
+        sf::Image image;
+        image.loadFromFile(fileName);
+        spriteImages.push_back(image);
+    }
 }
 
 void Display::Reset() {
@@ -394,3 +406,57 @@ void Display::UpdateSprite(uint8_t sprite_address, uint8_t value) {
 			break;
 	}
 } 
+
+/**
+ * Goes through each remote player in the game state and displays them on the screen
+ */
+sf::Image Display::DisplayPlayers(const HostGameState& hostGameState) {
+    for (const auto& playerGameState : hostGameState.playerGameStates) {
+        const auto& playerPosition = playerGameState.playerPosition;
+        auto xPosition = static_cast<int>(playerPosition.xPosition);
+        auto yPosition = static_cast<int>(playerPosition.yPosition);
+        
+        // Draw player to frame only if he is visible
+        auto myPositionX = static_cast<int>(mmu->ReadByte(0xd362));
+        auto myPositionY = static_cast<int>(mmu->ReadByte(0xd361));
+        if (std::abs(myPositionX - xPosition) > 8 ||
+            std::abs(myPositionY - yPosition) > 8) continue;
+            
+        // Player is on screen, get his frame index and draw that frame
+        // TODO: Determine if player is on bike, swimming, or just walking
+        // Also need to determine direction, etc
+        int frameNumber = 0;
+        if (spriteFrame.count(playerGameState.uniqueId)) {
+            frameNumber = spriteFrame[playerGameState.uniqueId];
+            if (frameNumber >= 6) {
+                frameNumber = 0;
+                spriteFrame[playerGameState.uniqueId] = frameNumber;
+            }
+        } else {
+            spriteFrame[playerGameState.uniqueId] = frameNumber;
+        }
+        
+        auto pixelPositionX = 0;
+        auto pixelPositionY = 0;
+        DrawSpriteToImage(spriteImages[0], frameNumber, pixelPositionX, pixelPositionY);
+    }
+    
+    return frame;
+}
+
+/**
+ * Draw the frame of the provided sprite to the current image at the provided coordinates.
+ */
+ void Display::DrawSpriteToImage(sf::Image spriteImage, int frameNumber, int pixelPositionX, int pixelPositionY) {
+     int yOffset = 16*frameNumber;
+     for (int x = 0; x < 16; ++x) {
+         for (int y = 0; y < 16; ++y) {
+             // Draw the pixels to the image
+             auto pixel = spriteImages[0].getPixel(x, y+yOffset);
+             if (pixel.a == 255) {
+                 // Only draw non-transparent pixels
+                frame.setPixel(x+pixelPositionX, y+pixelPositionY, pixel);
+             }
+         }
+     }
+ }

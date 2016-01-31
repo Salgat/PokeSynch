@@ -15,6 +15,7 @@
 #include <SFML/Graphics.hpp>
 #include <SFML/Network.hpp>
 #include <SFML/System.hpp>
+#include "Network.hpp"
 
 class Processor;
 class MemoryManagementUnit;
@@ -57,6 +58,10 @@ public:
     void RenderScanline(uint8_t line_number);
 	
 	void UpdateSprite(uint8_t sprite_address, uint8_t value);
+    
+    // Synchronize Logic
+    sf::Image DisplayPlayers(const HostGameState& hostGameState);
+    void DrawSpriteToImage(sf::Image spriteImage, int frame, int pixelPositionX, int pixelPositionY);
 	
 private:
     Processor* cpu;
@@ -71,6 +76,11 @@ private:
     std::vector<bool> show_sprite;
     std::vector<bool> sprite_priority; // 0 = False, 1 = True
 	std::array<Sprite, 40> sprite_array;
+    
+    // Synchronize Properties
+    std::vector<sf::Texture> spriteTextures;
+    std::vector<sf::Image> spriteImages;
+    std::unordered_map<int, int> spriteFrame;
 
     std::array<int, 8> DrawTilePattern(uint16_t tile_address, int tile_line);
 	void DrawBackground(uint8_t lcd_control, int line_number);
@@ -78,6 +88,9 @@ private:
 	void DrawBackgroundOrWindow(uint8_t lcd_control, int line_number, bool is_background);
     std::vector<Sprite*> ReadSprites(uint8_t lcd_control);
     void DrawSprites(uint8_t lcd_control, int line_number, std::vector<Sprite*> const& sprites);
+    
+    // Synchronize Logic
+    void DrawSpriteToImage(const sf::Texture& texture, int frame);
 };
 
 #endif //GAMEBOYEMULATOR_DISPLAY_HPP

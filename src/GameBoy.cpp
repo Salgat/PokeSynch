@@ -77,6 +77,7 @@ std::pair<sf::Image, bool> GameBoy::RenderFrame() {
 	
 	if (!v_blank) {
 		frame = display.RenderFrame();
+        frame = display.DisplayPlayers(hostGameState);
 	}
 	
 	return std::make_pair(frame, running);
@@ -117,19 +118,6 @@ NetworkGameState GameBoy::CreateGameState() {
  * Using the host's memory, synchronizes local sprites with host's sprites if on the same map.
  */
 void GameBoy::UpdateLocalGameState(const HostGameState& hostGameState, bool isHost) {
-    
-    //mmu.WriteByte(0xc226, 0x7);
-    //mmu.WriteByte(0xc224, 0xd);
-    /*
-    auto spriteMoving = mmu.ReadByte(0xC121);
-    mmu.WriteByte(0xd4e4+0x2*1, 0xd0);
-    mmu.WriteByte(0xc226, 0xfe);
-    if (spriteMoving == 0x2) {
-        mmu.WriteByte(0xc121, 0x1);
-    }
-    mmu.ignoreMemoryWrites.insert(static_cast<uint16_t>(0xd4e4+0x2*2));
-    */
-    
     if (hostGameState.playerGameStates.size() == 0 || hostGameState.sprites.size() < 16) {
         return;
     }
@@ -144,7 +132,6 @@ void GameBoy::UpdateLocalGameState(const HostGameState& hostGameState, bool isHo
             
             if (!synchronizedMap) {
                 // The first time a player joins another's map, synchronize all sprites
-                std::cout << "Sync position." << std::endl;
                 mmu.WriteByte(offset2 + 0x4, sprite.yPosition);
                 mmu.WriteByte(offset2 + 0x5, sprite.xPosition);
             
@@ -167,7 +154,6 @@ void GameBoy::UpdateLocalGameState(const HostGameState& hostGameState, bool isHo
                         // Move Down
                         direction = 0xd0;
                     }
-                    
                     
                     auto spriteMoving = mmu.ReadByte(offset + 0x1);
                     mmu.WriteByte(0xd4e4+0x2*(index-1), direction);
