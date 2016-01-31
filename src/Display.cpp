@@ -411,14 +411,15 @@ void Display::UpdateSprite(uint8_t sprite_address, uint8_t value) {
  * Goes through each remote player in the game state and displays them on the screen
  */
 sf::Image Display::DisplayPlayers(const HostGameState& hostGameState) {
+    auto myPositionX = static_cast<int>(mmu->ReadByte(0xd362));
+    auto myPositionY = static_cast<int>(mmu->ReadByte(0xd361));
+    
     for (const auto& playerGameState : hostGameState.playerGameStates) {
         const auto& playerPosition = playerGameState.playerPosition;
         auto xPosition = static_cast<int>(playerPosition.xPosition);
         auto yPosition = static_cast<int>(playerPosition.yPosition);
         
         // Draw player to frame only if he is visible
-        auto myPositionX = static_cast<int>(mmu->ReadByte(0xd362));
-        auto myPositionY = static_cast<int>(mmu->ReadByte(0xd361));
         if (std::abs(myPositionX - xPosition) > 8 ||
             std::abs(myPositionY - yPosition) > 8) continue;
             
@@ -437,8 +438,10 @@ sf::Image Display::DisplayPlayers(const HostGameState& hostGameState) {
         }
         
         // Note: local player's position is 60x64 pixels
-        auto pixelPositionX = 0;
-        auto pixelPositionY = 0;
+        auto pixelPositionX = 60 + (xPosition - myPositionX) * 16 + 4;
+        auto pixelPositionY = 64 + (yPosition - myPositionY) * 16 - 4;
+        if (pixelPositionX < 0 || pixelPositionX >= 160 ||
+            pixelPositionY < 0 || pixelPositionY >= 144) continue;
         DrawSpriteToImage(spriteImages[0], frameNumber, pixelPositionX, pixelPositionY, false);
     }
     
