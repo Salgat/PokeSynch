@@ -37,6 +37,26 @@ struct Sprite {
     int height = 8;
 };
 
+enum class PlayerDirection {
+    UP,
+    DOWN,
+    LEFT,
+    RIGHT
+};
+
+/**
+ * Holds the current state of the simulated player.
+ */
+struct SimulatedPlayerState {
+    int xPosition;
+    int yPosition;
+    int xPixelOffset;
+    int yPixelOffset;
+    int walkCounter; // Increment every cycle, with a pixel increase every four
+    PlayerDirection direction;
+    bool alternateStep; // Tracks the frame to show when walking
+};
+
 /**
  * Handles rendering to the "screen".
  */
@@ -62,6 +82,8 @@ public:
     // Synchronize Logic
     sf::Image DisplayPlayers(const HostGameState& hostGameState);
     void DrawSpriteToImage(sf::Image spriteImage, int frame, int pixelPositionX, int pixelPositionY);
+    
+    std::unordered_map<int, SimulatedPlayerState> simulatedPlayerStates;
 	
 private:
     Processor* cpu;
@@ -91,6 +113,7 @@ private:
     
     // Synchronize Logic
     void DrawSpriteToImage(sf::Image spriteImage, int frameNumber, int pixelPositionX, int pixelPositionY, bool flipHorizontal);
+    void WalkSimulatedPlayer(SimulatedPlayerState& simulatedPlayerState, PlayerDirection direction);
 };
 
 #endif //GAMEBOYEMULATOR_DISPLAY_HPP
