@@ -415,7 +415,7 @@ sf::Image Display::DisplayPlayers(const HostGameState& hostGameState) {
     auto myPositionY = static_cast<int>(mmu->ReadByte(0xd361));
     
     for (const auto& playerGameState : hostGameState.playerGameStates) {
-        std::cout << "Displaying player: " << playerGameState.uniqueId << std::endl;
+        //std::cout << "Displaying player: " << playerGameState.uniqueId << std::endl;
         auto& simulatedPlayerState = simulatedPlayerStates[playerGameState.uniqueId];
         const auto& playerPosition = playerGameState.playerPosition;
         auto xPosition = static_cast<int>(playerPosition.xPosition);
@@ -433,14 +433,14 @@ sf::Image Display::DisplayPlayers(const HostGameState& hostGameState) {
             simulatedPlayerStates[playerGameState.uniqueId] = simulatedPlayerState;
         } else {
             // Update simulated player   
-            int deltaX = simulatedPlayerState.xPosition - myPositionX;
-            int deltaY = simulatedPlayerState.yPosition - myPositionY;
+            int deltaX = simulatedPlayerState.xPosition - xPosition;
+            int deltaY = simulatedPlayerState.yPosition - yPosition;
             //std::cout << "Delta X,Y: " << deltaX << ", " << deltaY << std::endl;
             
             if (std::abs(deltaX) > 3 || std::abs(deltaY) > 3) {
                 //std::cout << "Updating delta position." << std::endl;
-                simulatedPlayerState.xPosition = myPositionX;
-                simulatedPlayerState.yPosition = myPositionY;
+                simulatedPlayerState.xPosition = xPosition;
+                simulatedPlayerState.yPosition = yPosition;
             }
             
             if (deltaX > 0) {
@@ -466,8 +466,8 @@ sf::Image Display::DisplayPlayers(const HostGameState& hostGameState) {
         //          << " - ActualX, ActualY: " << myPositionX << ", " << myPositionY
         //          << " - PixelX, PixelY: " << simulatedPlayerState.xPixelOffset << ", " << simulatedPlayerState.yPixelOffset << std::endl;
         // Draw player to frame only if he is visible
-        if (std::abs(myPositionX - simulatedPlayerState.xPosition) > 8 ||
-            std::abs(myPositionY - simulatedPlayerState.yPosition) > 8) continue;
+        if (std::abs(xPosition - simulatedPlayerState.xPosition) > 8 ||
+            std::abs(yPosition - simulatedPlayerState.yPosition) > 8) continue;
             
         // Player is on screen, get his frame index and draw that frame
         // TODO: Determine if player is on bike, swimming, or just walking
@@ -521,6 +521,7 @@ void Display::DrawSpriteToImage(sf::Image spriteImage, int frameNumber, int pixe
  */
 void Display::WalkSimulatedPlayer(SimulatedPlayerState& simulatedPlayerState, PlayerDirection direction) {
     int walkOffset = 0;
+    simulatedPlayerState.direction = direction;
     if (simulatedPlayerState.walkCounter >= 16) {
         // Update direction first
         simulatedPlayerState.direction = direction;
