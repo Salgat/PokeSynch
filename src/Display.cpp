@@ -413,16 +413,15 @@ void Display::UpdateSprite(uint8_t sprite_address, uint8_t value) {
 sf::Image Display::DisplayPlayers(const HostGameState& hostGameState) {
     auto myPositionX = static_cast<int>(mmu->ReadByte(0xd362));
     auto myPositionY = static_cast<int>(mmu->ReadByte(0xd361));
+    auto myDirection = static_cast<int>(mmu->ReadByte(0xC109)); // Need to make sure this direction is correct for when the step counter initially updates
     
     for (const auto& playerGameState : hostGameState.playerGameStates) {
-        //std::cout << "Displaying player: " << playerGameState.uniqueId << std::endl;
         auto& simulatedPlayerState = simulatedPlayerStates[playerGameState.uniqueId];
         const auto& playerPosition = playerGameState.playerPosition;
         auto xPosition = static_cast<int>(playerPosition.xPosition);
         auto yPosition = static_cast<int>(playerPosition.yPosition);
         
         if (simulatedPlayerStates.count(playerGameState.uniqueId) == 0) {
-            //std::cout << "Setting up new player" << std::endl;
             // If a new player, create a new entry for it
             SimulatedPlayerState simulatedPlayerState;
             simulatedPlayerState.xPosition = xPosition;
@@ -435,10 +434,8 @@ sf::Image Display::DisplayPlayers(const HostGameState& hostGameState) {
             // Update simulated player   
             int deltaX = simulatedPlayerState.xPosition - xPosition;
             int deltaY = simulatedPlayerState.yPosition - yPosition;
-            //std::cout << "Delta X,Y: " << deltaX << ", " << deltaY << std::endl;
             
             if (std::abs(deltaX) > 3 || std::abs(deltaY) > 3) {
-                //std::cout << "Updating delta position." << std::endl;
                 simulatedPlayerState.xPosition = xPosition;
                 simulatedPlayerState.yPosition = yPosition;
             }
@@ -461,10 +458,6 @@ sf::Image Display::DisplayPlayers(const HostGameState& hostGameState) {
             }
         }
         
-        
-        //std::cout << "X, Y: " << simulatedPlayerState.xPosition << ", " << simulatedPlayerState.yPosition
-        //          << " - ActualX, ActualY: " << myPositionX << ", " << myPositionY
-        //          << " - PixelX, PixelY: " << simulatedPlayerState.xPixelOffset << ", " << simulatedPlayerState.yPixelOffset << std::endl;
         // Draw player to frame only if he is visible
         if (std::abs(xPosition - simulatedPlayerState.xPosition) > 8 ||
             std::abs(yPosition - simulatedPlayerState.yPosition) > 8) continue;
@@ -483,9 +476,30 @@ sf::Image Display::DisplayPlayers(const HostGameState& hostGameState) {
             spriteFrame[playerGameState.uniqueId] = frameNumber;
         }
         
+        // Get Player direction and step counter, and calculate pixel offset from 16-(step counter*2) then offset 
+        // the pixelPosition by that amount.
+        int walkingOffset = 16 - 2 * static_cast<int>(mmu->ReadByte(0xcfc5));
+        int yWalkingOffset = 0;
+        int xWalkingOffset = 0;
+        if (static_cast<int>(mmu->ReadByte(0xcfc5)) != 0) {
+            if (myDirection == 0x0) {
+                // Down
+                yWalkingOffset += walkingOffset;
+            } else if (myDirection == 0x4) {
+                // Up
+                yWalkingOffset -= walkingOffset;
+            } else if (myDirection == 0x8) {
+                // Left
+                xWalkingOffset -= walkingOffset;
+            } else if (myDirection == 0xC) {
+                // Right
+                xWalkingOffset += walkingOffset;
+            }
+        }
+        
         // Note: local player's position is 60x64 pixels
-        auto pixelPositionX = 60 + (simulatedPlayerState.xPosition - myPositionX) * 16 + 4 + simulatedPlayerState.xPixelOffset;
-        auto pixelPositionY = 64 + (simulatedPlayerState.yPosition - myPositionY) * 16 - 4 + simulatedPlayerState.yPixelOffset;
+        auto pixelPositionX = 60 + (simulatedPlayerState.xPosition - myPositionX) * 16 + 4 + simulatedPlayerState.xPixelOffset - xWalkingOffset;
+        auto pixelPositionY = 64 + (simulatedPlayerState.yPosition - myPositionY) * 16 - 4 + simulatedPlayerState.yPixelOffset - yWalkingOffset;
         if (pixelPositionX < 0 || pixelPositionX >= 160 ||
             pixelPositionY < 0 || pixelPositionY >= 144) continue;
         DrawSpriteToImage(spriteImages[0], frameNumber, pixelPositionX, pixelPositionY, false);
@@ -537,7 +551,6 @@ void Display::WalkSimulatedPlayer(SimulatedPlayerState& simulatedPlayerState, Pl
     }
 
     if (walkOffset) {
-        //std::cout << "Updating position" << std::endl;
         switch (simulatedPlayerState.direction) {
             case PlayerDirection::UP:
                 simulatedPlayerState.yPosition += 1;
@@ -553,7 +566,6 @@ void Display::WalkSimulatedPlayer(SimulatedPlayerState& simulatedPlayerState, Pl
                 break;
         }
     } else {
-        //std::cout << "Updating pixel offset" << std::endl;
         switch (simulatedPlayerState.direction) {
             case PlayerDirection::UP:
                 simulatedPlayerState.yPixelOffset += 1;
