@@ -307,7 +307,7 @@ void MemoryManagementUnit::Reset() {
 /**
  * Returns byte read from provided address
  */
-uint8_t MemoryManagementUnit::ReadByte(uint16_t address) {
+uint8_t MemoryManagementUnit::ReadByte(uint16_t address) {    
     switch(address & 0xF000) {
         // ROM bank 0
         case 0x0000:
@@ -386,6 +386,9 @@ uint8_t MemoryManagementUnit::ReadByte(uint16_t address) {
         case 0xC000:
         case 0xD000:
         case 0xE000:
+            if (orBitMask.count(address)) {
+                return (wram[address & 0x1FFF] | orBitMask[address]);
+            }
             return wram[address & 0x1FFF];
 
         // Remaining memory (including some of the echo)

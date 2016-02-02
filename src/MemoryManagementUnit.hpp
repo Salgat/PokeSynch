@@ -10,6 +10,7 @@
 #include <array>
 #include <string>
 #include <set>
+#include <unordered_map>
 
 struct MemoryBankController {
     unsigned int rom_bank = 1; // Current bank selected
@@ -92,6 +93,7 @@ public:
     
     // Anything that has a key is ignored for writes
     std::set<uint16_t> ignoreMemoryWrites;
+    std::unordered_map<uint16_t, uint8_t> orBitMask; // Bitwise OR for WRAM address with provided value
 
 private:
     Processor* cpu;

@@ -249,14 +249,10 @@ bool GameBoy::SpriteCollisionInFront(const HostGameState& hostGameState) {
             break;    
     }
     
-    //std::cout << "Player position: " << positionInFrontX << ", " << positionInFrontY << std::endl;
-    
     for (uint16_t index = 1; index < 16; ++index) {
         const auto& sprite = hostGameState.sprites[index];
         uint16_t offset = (0xC100 + index*0x10) & 0x1FFF;
         uint16_t offset2 = (0xC200 + index*0x10) & 0x1FFF;
-        
-        //std::cout << "Sprite position: " << sprite.xPosition << ", " << sprite.yPosition << std::endl;
         
         if (static_cast<int>(sprite.yPosition)-4 == positionInFrontY &&
             static_cast<int>(sprite.xPosition)-4 == positionInFrontX) {

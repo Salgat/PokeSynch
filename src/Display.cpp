@@ -253,9 +253,7 @@ void Display::DrawSprites(uint8_t lcd_control, int line_number, std::vector<Spri
 	int drawn_count = 0;
     for (int index = sprites.size()-1; index >= 0; --index) {
 		if (drawn_count >= 10) break; // Limit to drawing the first 10 sprites of highest priority
-		//std::cout << "Testing for index: " << index << std::endl;
 		if (sprites[index]->y + sprites[index]->height > line_number and sprites[index]->y <= line_number) {
-			//std::cout << "Found sprite on scanline: " << line_number << std::endl;
 			// If on the scanline, draw the sprite's current line
 			uint16_t tile_address = sprite_pattern_table + sprites[index]->tile_number*16;
 			int tile_line = line_number-sprites[index]->y;
@@ -340,9 +338,7 @@ void Display::DrawSprites(uint8_t lcd_control, int line_number, std::vector<Spri
 /**
  * Returns the 8 pixel row of the given tile.
  */
-std::array<int, 8> Display::DrawTilePattern(uint16_t tile_address, int tile_line) {
-	//std::cout << "Pattern and line: " << static_cast<unsigned int>(tile_address) << ", " << static_cast<unsigned int>(tile_line) << std::endl;
-	uint16_t line = tile_address + 2*tile_line;
+std::array<int, 8> Display::DrawTilePattern(uint16_t tile_address, int tile_line) {uint16_t line = tile_address + 2*tile_line;
 	uint8_t line_0 = mmu->ReadByte(line);
     uint8_t line_1 = mmu->ReadByte(line+1);
 	std::array<int, 8> pixels;
@@ -415,11 +411,15 @@ sf::Image Display::DisplayPlayers(const HostGameState& hostGameState) {
     auto myPositionY = static_cast<int>(mmu->ReadByte(0xd361));
     auto myDirection = static_cast<int>(mmu->ReadByte(0xC109)); // Need to make sure this direction is correct for when the step counter initially updates
     
+    uint8_t orCollisionMask = 0x00;
     for (const auto& playerGameState : hostGameState.playerGameStates) {
         auto& simulatedPlayerState = simulatedPlayerStates[playerGameState.uniqueId];
         const auto& playerPosition = playerGameState.playerPosition;
         auto xPosition = static_cast<int>(playerPosition.xPosition);
         auto yPosition = static_cast<int>(playerPosition.yPosition);
+        
+        // TODO: Need to calculate what this is
+        int playerDirection = myDirection;
         
         if (simulatedPlayerStates.count(playerGameState.uniqueId) == 0) {
             // If a new player, create a new entry for it
@@ -482,16 +482,16 @@ sf::Image Display::DisplayPlayers(const HostGameState& hostGameState) {
         int yWalkingOffset = 0;
         int xWalkingOffset = 0;
         if (static_cast<int>(mmu->ReadByte(0xcfc5)) != 0) {
-            if (myDirection == 0x0) {
+            if (playerDirection == 0x0) {
                 // Down
                 yWalkingOffset += walkingOffset;
-            } else if (myDirection == 0x4) {
+            } else if (playerDirection == 0x4) {
                 // Up
                 yWalkingOffset -= walkingOffset;
-            } else if (myDirection == 0x8) {
+            } else if (playerDirection == 0x8) {
                 // Left
                 xWalkingOffset -= walkingOffset;
-            } else if (myDirection == 0xC) {
+            } else if (playerDirection == 0xC) {
                 // Right
                 xWalkingOffset += walkingOffset;
             }
@@ -503,7 +503,26 @@ sf::Image Display::DisplayPlayers(const HostGameState& hostGameState) {
         if (pixelPositionX < 0 || pixelPositionX >= 160 ||
             pixelPositionY < 0 || pixelPositionY >= 144) continue;
         DrawSpriteToImage(spriteImages[0], frameNumber, pixelPositionX, pixelPositionY, false);
+        
+        // If sprite is next to player, set collision bit for player
+        if (myPositionX - 1 == simulatedPlayerState.xPosition) {
+            // Left Collision
+            orCollisionMask |= 0x2;
+        } else if (myPositionX + 1 == simulatedPlayerState.xPosition) {    
+            // Right Collision
+            orCollisionMask |= 0x1;
+        } else if (myPositionY - 1 == simulatedPlayerState.yPosition) {   
+            // Up Collision
+            orCollisionMask |= 0x8;
+        } else if (myPositionY + 1 == simulatedPlayerState.yPosition) {  
+            // Down Collision
+           orCollisionMask |= 0x4;
+        } else {
+            // No collision
+        }
     }
+    
+    mmu->orBitMask[0xC10C] = orCollisionMask;
     
     return frame;
 }
