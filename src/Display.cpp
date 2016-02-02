@@ -463,7 +463,7 @@ sf::Image Display::DisplayPlayers(const HostGameState& hostGameState) {
             std::abs(yPosition - simulatedPlayerState.yPosition) > 8) continue;
             
         // Player is on screen, get his frame index and draw that frame
-        // TODO: Determine if player is on bike, swimming, or just walking
+        // TODO: Determine if player is on bike, swimming, or just walking. If on the bike, need to adjust for speed
         // Also need to determine direction, etc
         int frameNumber = 3;
         if (spriteFrame.count(playerGameState.uniqueId)) {

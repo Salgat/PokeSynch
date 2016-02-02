@@ -130,8 +130,12 @@ void GameBoy::UpdateLocalGameState(const HostGameState& hostGameState, bool isHo
             uint16_t offset = (0xC100 + index*0x10);
             uint16_t offset2 = (0xC200 + index*0x10);
             
-            if (!synchronizedMap) {
-                // The first time a player joins another's map, synchronize all sprites
+            if (!synchronizedMap || std::abs(static_cast<int>(mmu.ReadByte(offset2 + 0x5)) - 4 - static_cast<int>(mmu.ReadByte(0xd362))) > 4 ||
+                                    std::abs(static_cast<int>(mmu.ReadByte(offset2 + 0x4)) - 4 - static_cast<int>(mmu.ReadByte(0xd361))) > 4 ||
+                                    std::abs(static_cast<int>(sprite.xPosition) - 4 - static_cast<int>(mmu.ReadByte(0xd362))) > 4 ||
+                                    std::abs(static_cast<int>(sprite.yPosition) - 4 - static_cast<int>(mmu.ReadByte(0xd361))) > 4) {
+                // The first time a player joins another's map, synchronize all sprites OR if
+                // the sprite is outside the vision.
                 mmu.WriteByte(offset2 + 0x4, sprite.yPosition);
                 mmu.WriteByte(offset2 + 0x5, sprite.xPosition);
             
