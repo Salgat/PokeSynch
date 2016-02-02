@@ -505,16 +505,16 @@ sf::Image Display::DisplayPlayers(const HostGameState& hostGameState) {
         DrawSpriteToImage(spriteImages[0], frameNumber, pixelPositionX, pixelPositionY, false);
         
         // If sprite is next to player, set collision bit for player
-        if (myPositionX - 1 == simulatedPlayerState.xPosition) {
+        if (myPositionX - 1 == simulatedPlayerState.xPosition && myPositionY == simulatedPlayerState.yPosition) {
             // Left Collision
             orCollisionMask |= 0x2;
-        } else if (myPositionX + 1 == simulatedPlayerState.xPosition) {    
+        } else if (myPositionX + 1 == simulatedPlayerState.xPosition && myPositionY == simulatedPlayerState.yPosition) {    
             // Right Collision
             orCollisionMask |= 0x1;
-        } else if (myPositionY - 1 == simulatedPlayerState.yPosition) {   
+        } else if (myPositionY - 1 == simulatedPlayerState.yPosition && myPositionX == simulatedPlayerState.xPosition) {   
             // Up Collision
             orCollisionMask |= 0x8;
-        } else if (myPositionY + 1 == simulatedPlayerState.yPosition) {  
+        } else if (myPositionY + 1 == simulatedPlayerState.yPosition && myPositionX == simulatedPlayerState.xPosition) {  
             // Down Collision
            orCollisionMask |= 0x4;
         } else {
