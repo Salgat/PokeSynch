@@ -406,56 +406,70 @@ void Display::UpdateSprite(uint8_t sprite_address, uint8_t value) {
 /**
  * Goes through each remote player in the game state and displays them on the screen
  */
-sf::Image Display::DisplayPlayers(const HostGameState& hostGameState) {
+sf::Image Display::DisplayPlayers(HostGameState hostGameState, int myUniqueId) {
     auto myPositionX = static_cast<int>(mmu->ReadByte(0xd362));
     auto myPositionY = static_cast<int>(mmu->ReadByte(0xd361));
     auto myDirection = static_cast<int>(mmu->ReadByte(0xC109)); // Need to make sure this direction is correct for when the step counter initially updates
     
-    uint8_t orCollisionMask = 0x00;
+    // Update or Add from playerGameStates
     for (const auto& playerGameState : hostGameState.playerGameStates) {
-        auto& simulatedPlayerState = simulatedPlayerStates[playerGameState.uniqueId];
         const auto& playerPosition = playerGameState.playerPosition;
-        auto xPosition = static_cast<int>(playerPosition.xPosition);
-        auto yPosition = static_cast<int>(playerPosition.yPosition);
+        if (simulatedPlayerStates.count(playerGameState.uniqueId) == 0) {
+            // Player doesn't exist in simulator, initialize it
+            SimulatedPlayerState simulatedPlayerState;
+            simulatedPlayerState.xPosition = playerPosition.xPosition;
+            simulatedPlayerState.yPosition = playerPosition.yPosition;
+            simulatedPlayerState.xPositionDestination = playerPosition.xPosition;
+            simulatedPlayerState.yPositionDestination = playerPosition.yPosition;
+            simulatedPlayerState.walkCounter = 0;
+            simulatedPlayerState.direction = PlayerDirection::DOWN;
+            simulatedPlayerState.uniqueId = playerGameState.uniqueId;
+            simulatedPlayerStates[playerGameState.uniqueId] = simulatedPlayerState;
+        } else {
+            // Update player's destination
+            simulatedPlayerStates[playerGameState.uniqueId].xPositionDestination = playerPosition.xPosition;
+            simulatedPlayerStates[playerGameState.uniqueId].yPositionDestination = playerPosition.yPosition;
+        }
+        
+        int playerDirection = myDirection;
+    }
+    
+    uint8_t orCollisionMask = 0x00;
+    for (auto& simulatedPlayerStateEntry : simulatedPlayerStates) {
+        // Ignore own player's sprite
+        if (simulatedPlayerStateEntry.second.uniqueId == myUniqueId) continue;
+        
+        auto& simulatedPlayerState = simulatedPlayerStateEntry.second;
+        auto xPosition = static_cast<int>(simulatedPlayerState.xPositionDestination);
+        auto yPosition = static_cast<int>(simulatedPlayerState.yPositionDestination);
         
         // TODO: Need to calculate what this is
         int playerDirection = myDirection;
         
-        if (simulatedPlayerStates.count(playerGameState.uniqueId) == 0) {
-            // If a new player, create a new entry for it
-            SimulatedPlayerState simulatedPlayerState;
+        // Update simulated player   
+        int deltaX = simulatedPlayerState.xPosition - xPosition;
+        int deltaY = simulatedPlayerState.yPosition - yPosition;
+        
+        if (std::abs(deltaX) > 3 || std::abs(deltaY) > 3) {
             simulatedPlayerState.xPosition = xPosition;
             simulatedPlayerState.yPosition = yPosition;
-            simulatedPlayerState.walkCounter = 0;
-            simulatedPlayerState.direction = PlayerDirection::DOWN;
-            
-            simulatedPlayerStates[playerGameState.uniqueId] = simulatedPlayerState;
+        }
+        
+        if (deltaX > 0) {
+            // Move Right
+            WalkSimulatedPlayer(simulatedPlayerState, PlayerDirection::RIGHT);
+        } else if (deltaX < 0) {
+            // Move Left
+            WalkSimulatedPlayer(simulatedPlayerState, PlayerDirection::LEFT);
+        } else if (deltaY > 0) {
+            // Move Down
+            WalkSimulatedPlayer(simulatedPlayerState, PlayerDirection::DOWN);
+        } else if (deltaY < 0) {
+            // Move Up
+            WalkSimulatedPlayer(simulatedPlayerState, PlayerDirection::UP);
         } else {
-            // Update simulated player   
-            int deltaX = simulatedPlayerState.xPosition - xPosition;
-            int deltaY = simulatedPlayerState.yPosition - yPosition;
-            
-            if (std::abs(deltaX) > 3 || std::abs(deltaY) > 3) {
-                simulatedPlayerState.xPosition = xPosition;
-                simulatedPlayerState.yPosition = yPosition;
-            }
-            
-            if (deltaX > 0) {
-                // Move Right
-                WalkSimulatedPlayer(simulatedPlayerState, PlayerDirection::RIGHT);
-            } else if (deltaX < 0) {
-                // Move Left
-                WalkSimulatedPlayer(simulatedPlayerState, PlayerDirection::LEFT);
-            } else if (deltaY > 0) {
-                // Move Down
-                WalkSimulatedPlayer(simulatedPlayerState, PlayerDirection::DOWN);
-            } else if (deltaY < 0) {
-                // Move Up
-                WalkSimulatedPlayer(simulatedPlayerState, PlayerDirection::UP);
-            } else {
-                // Don't move
-                simulatedPlayerState.walkCounter = 0;
-            }
+            // Don't move
+            simulatedPlayerState.walkCounter = 0;
         }
         
         // Draw player to frame only if he is visible
@@ -466,14 +480,14 @@ sf::Image Display::DisplayPlayers(const HostGameState& hostGameState) {
         // TODO: Determine if player is on bike, swimming, or just walking. If on the bike, need to adjust for speed
         // Also need to determine direction, etc
         int frameNumber = 3;
-        if (spriteFrame.count(playerGameState.uniqueId)) {
-            frameNumber = spriteFrame[playerGameState.uniqueId];
+        if (spriteFrame.count(simulatedPlayerState.uniqueId)) {
+            frameNumber = spriteFrame[simulatedPlayerState.uniqueId];
             if (frameNumber >= 6) {
                 frameNumber = 0;
-                spriteFrame[playerGameState.uniqueId] = frameNumber;
+                spriteFrame[simulatedPlayerState.uniqueId] = frameNumber;
             }
         } else {
-            spriteFrame[playerGameState.uniqueId] = frameNumber;
+            spriteFrame[simulatedPlayerState.uniqueId] = frameNumber;
         }
         
         // Get Player direction and step counter, and calculate pixel offset from 16-(step counter*2) then offset 
@@ -502,6 +516,7 @@ sf::Image Display::DisplayPlayers(const HostGameState& hostGameState) {
         auto pixelPositionY = 64 + (simulatedPlayerState.yPosition - myPositionY) * 16 - 4 + simulatedPlayerState.yPixelOffset - yWalkingOffset;
         if (pixelPositionX < 0 || pixelPositionX >= 160 ||
             pixelPositionY < 0 || pixelPositionY >= 144) continue;
+        
         DrawSpriteToImage(spriteImages[0], frameNumber, pixelPositionX, pixelPositionY, false);
         
         // If sprite is next to player, set collision bit for player

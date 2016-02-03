@@ -180,6 +180,7 @@ bool Network::Host(unsigned short port, const std::string& name) {
     networkMode = NetworkMode::CONNECTED_AS_HOST;
     std::srand(std::time(0)); // use current time as seed for random generator
     uniqueId = std::rand();
+    std::cout << "Host uniqueId: " << uniqueId << std::endl;
     return true;
 }
 
@@ -232,8 +233,8 @@ bool Network::Connect(sf::IpAddress address, unsigned short hostPort, unsigned s
         std::cout << "Packet type was not CONNECT_RESPONSE, attempting to receive another packet: " << packetType << std::endl;
     }
     
-    std::cout << "Connection to host successful." << std::endl;
     connectResponsePacket >> uniqueId;
+    std::cout << "Connection to host successful with unique id: " << uniqueId << std::endl;
     networkMode = NetworkMode::CONNECTED_AS_CLIENT;
     socket.setBlocking(false);
     
@@ -251,13 +252,29 @@ bool Network::Connect(sf::IpAddress address, unsigned short hostPort, unsigned s
  * no updates to state are received.
  */
 HostGameState Network::Update(NetworkGameState& localGameState) {
+    //std::cout << "My unique Id: " << uniqueId << std::endl;
     localGameState.uniqueId = uniqueId;
     localGameState.name = name;
     
     if (networkMode == NetworkMode::CONNECTED_AS_HOST) {
-        return HostUpdate(localGameState);
+        auto host = HostUpdate(localGameState);
+        
+        for (auto& gs : host.playerGameStates) {
+            //std::cout << "Unique Id: " << gs.uniqueId << std::endl;
+        }
+        
+        return host;
+        //return HostUpdate(localGameState);
     } else if (networkMode == NetworkMode::CONNECTED_AS_CLIENT) {
-        return ClientUpdate(localGameState);
+        auto host = ClientUpdate(localGameState);
+        
+        for (auto& gs : host.playerGameStates) {
+            //std::cout << "Unique Id: " << gs.uniqueId << std::endl;
+        }
+        
+        return host;
+        
+        //return ClientUpdate(localGameState);
     } else {
         throw;
     }
@@ -280,6 +297,7 @@ HostGameState Network::HostUpdate(const NetworkGameState& localGameState) {
             } else if (packetType == static_cast<int>(PacketType::NETWORK_GAME_STATE)) {
                 auto gameState = HandleGameStateResponse(packet, sender, port);
                 clientGameStates[gameState.uniqueId] = gameState;
+                //std::cout << "Received game state from client: " << gameState.uniqueId << std::endl;
             }
         } else if (result == sf::Socket::Disconnected) {
             // TODO Reconnect

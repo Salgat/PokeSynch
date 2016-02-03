@@ -48,13 +48,14 @@ enum class PlayerDirection {
  * Holds the current state of the simulated player.
  */
 struct SimulatedPlayerState {
-    int xPosition;
-    int yPosition;
+    int xPosition; int xPositionDestination;
+    int yPosition; int yPositionDestination;
     int xPixelOffset;
     int yPixelOffset;
     int walkCounter; // Increment every cycle, with a pixel increase every four
     PlayerDirection direction;
     bool alternateStep; // Tracks the frame to show when walking
+    int uniqueId;
 };
 
 /**
@@ -80,7 +81,7 @@ public:
 	void UpdateSprite(uint8_t sprite_address, uint8_t value);
     
     // Synchronize Logic
-    sf::Image DisplayPlayers(const HostGameState& hostGameState);
+    sf::Image DisplayPlayers(HostGameState hostGameState, int myUniqueId);
     void DrawSpriteToImage(sf::Image spriteImage, int frame, int pixelPositionX, int pixelPositionY);
     
     std::unordered_map<int, SimulatedPlayerState> simulatedPlayerStates;

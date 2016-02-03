@@ -130,6 +130,7 @@ public:
 
     NetworkMode networkMode;
     bool isHost;
+    int uniqueId;
     
 private:
     MemoryManagementUnit* mmu;
@@ -140,7 +141,6 @@ private:
     sf::RenderWindow* window;
     
     sf::UdpSocket socket;
-    int uniqueId;
     std::string name;
     std::unordered_map<int, NetworkId> clients; // UniqueId, NetworkId
                                                 // NOTE: This only holds 1 element (0) if you are a client (the host's NetworkId)

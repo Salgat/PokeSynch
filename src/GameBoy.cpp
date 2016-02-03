@@ -77,7 +77,7 @@ std::pair<sf::Image, bool> GameBoy::RenderFrame() {
 	
 	if (!v_blank) {
 		frame = display.RenderFrame();
-        frame = display.DisplayPlayers(hostGameState);
+        frame = display.DisplayPlayers(hostGameState, network.uniqueId);
 	}
 	
 	return std::make_pair(frame, running);
