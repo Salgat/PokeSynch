@@ -65,6 +65,7 @@ struct NetworkGameState {
     int uniqueId; // Populated from NetworkId
     std::string name;
     int currentMap;
+    int walkBikeSurfState;
     PlayerPosition playerPosition;
     std::vector<SpriteState> sprites;
 };

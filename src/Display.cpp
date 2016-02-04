@@ -20,7 +20,9 @@ void Display::Initialize(Processor* cpu_, MemoryManagementUnit* mmu_) {
     mmu = mmu_;
     
     // Load textures 
-    std::array<std::string, 1> textureFileNames = {"../../data/sprites/red.png"};
+    std::array<std::string, 3> textureFileNames = {"../../data/sprites/red.png",
+                                                   "../../data/sprites/cycling.png",
+                                                   "../../data/sprites/swimming.png"};
     for (const auto& fileName : textureFileNames) {
         sf::Texture texture;
         texture.loadFromFile(fileName);
@@ -424,11 +426,15 @@ sf::Image Display::DisplayPlayers(HostGameState hostGameState, int myUniqueId) {
             simulatedPlayerState.walkCounter = 0;
             simulatedPlayerState.direction = PlayerDirection::DOWN;
             simulatedPlayerState.uniqueId = playerGameState.uniqueId;
+            simulatedPlayerState.walkBikeSurfState = playerGameState.walkBikeSurfState;
             simulatedPlayerStates[playerGameState.uniqueId] = simulatedPlayerState;
         } else {
             // Update player's destination
             simulatedPlayerStates[playerGameState.uniqueId].xPositionDestination = playerPosition.xPosition;
             simulatedPlayerStates[playerGameState.uniqueId].yPositionDestination = playerPosition.yPosition;
+            
+            // Update player's walk/bike/swim state
+            simulatedPlayerStates[playerGameState.uniqueId].walkBikeSurfState = playerGameState.walkBikeSurfState;
         }
         
         int playerDirection = myDirection;
@@ -479,15 +485,41 @@ sf::Image Display::DisplayPlayers(HostGameState hostGameState, int myUniqueId) {
         // Player is on screen, get his frame index and draw that frame
         // TODO: Determine if player is on bike, swimming, or just walking. If on the bike, need to adjust for speed
         // Also need to determine direction, etc
-        int frameNumber = 3;
-        if (spriteFrame.count(simulatedPlayerState.uniqueId)) {
-            frameNumber = spriteFrame[simulatedPlayerState.uniqueId];
-            if (frameNumber >= 6) {
+        // Frame is based on direction and alternating between steps
+        // Frame 0 = Down
+        // Frame 1 = Up
+        // Frame 2 = Left
+        // Frame 3 = Down-Moving
+        // Frame 4 = Up-Moving
+        // Frame 5 = Left Moving
+        bool flipHorizontal = false;
+        int frameNumber = 0;
+        if (simulatedPlayerState.direction == PlayerDirection::UP) {
+            if (simulatedPlayerState.walkCounter == 0) {
                 frameNumber = 0;
-                spriteFrame[simulatedPlayerState.uniqueId] = frameNumber;
+            } else {
+                frameNumber = 3;
             }
-        } else {
-            spriteFrame[simulatedPlayerState.uniqueId] = frameNumber;
+        } else if (simulatedPlayerState.direction == PlayerDirection::DOWN) {
+            if (simulatedPlayerState.walkCounter == 0) {
+                frameNumber = 1;
+            } else {
+                frameNumber = 4;
+            }
+        } else if (simulatedPlayerState.direction == PlayerDirection::LEFT) {
+            if (simulatedPlayerState.walkCounter == 0) {
+                frameNumber = 2;
+            } else {
+                frameNumber = 5;
+            }
+            
+            flipHorizontal = true;
+        } else if (simulatedPlayerState.direction == PlayerDirection::RIGHT) {
+            if (simulatedPlayerState.walkCounter == 0) {
+                frameNumber = 2;
+            } else {
+                frameNumber = 5;
+            }
         }
         
         // Get Player direction and step counter, and calculate pixel offset from 16-(step counter*2) then offset 
@@ -516,8 +548,21 @@ sf::Image Display::DisplayPlayers(HostGameState hostGameState, int myUniqueId) {
         auto pixelPositionY = 64 + (simulatedPlayerState.yPosition - myPositionY) * 16 - 4 + simulatedPlayerState.yPixelOffset - yWalkingOffset;
         if (pixelPositionX < 0 || pixelPositionX >= 160 ||
             pixelPositionY < 0 || pixelPositionY >= 144) continue;
+            
+            
+        int spriteIndex = 0;
+        if (simulatedPlayerState.walkBikeSurfState == 0x00) {
+            // Walking
+            spriteIndex = 0;
+        } else if (simulatedPlayerState.walkBikeSurfState == 0x01) {
+            // Cycling
+            spriteIndex = 1;
+        } else if (simulatedPlayerState.walkBikeSurfState == 0x02) {
+            // Swimming
+            spriteIndex = 2;
+        }
         
-        DrawSpriteToImage(spriteImages[0], frameNumber, pixelPositionX, pixelPositionY, false);
+        DrawSpriteToImage(spriteImages[spriteIndex], frameNumber, pixelPositionX, pixelPositionY, flipHorizontal);
         
         // If sprite is next to player, set collision bit for player
         if (myPositionX - 1 == simulatedPlayerState.xPosition && myPositionY == simulatedPlayerState.yPosition) {

@@ -87,6 +87,7 @@ NetworkGameState GameBoy::CreateGameState() {
     NetworkGameState localGameState;
     
     localGameState.currentMap = mmu.wram[0xD35E & 0x1FFF];
+    localGameState.walkBikeSurfState = mmu.ReadByte(0xd700);
     
     localGameState.playerPosition.yPosition = mmu.wram[0xD361 & 0x1FFF];
     localGameState.playerPosition.xPosition = mmu.wram[0xD362 & 0x1FFF];

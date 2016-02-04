@@ -14,7 +14,7 @@ void TestPacket(HostGameState hostGameState);
  * Serializes a NetworkGameState.
  */
 sf::Packet& operator <<(sf::Packet& packet, const NetworkGameState& networkGameState) {
-    packet << networkGameState.uniqueId << networkGameState.name << networkGameState.currentMap;
+    packet << networkGameState.uniqueId << networkGameState.name << networkGameState.currentMap << networkGameState.walkBikeSurfState;
     
     auto& playerPosition = networkGameState.playerPosition;
     packet << playerPosition.yPosition << playerPosition.xPosition 
@@ -34,7 +34,7 @@ sf::Packet& operator <<(sf::Packet& packet, const NetworkGameState& networkGameS
  * Deserializes a NetworkGameState.
  */
 sf::Packet& operator >>(sf::Packet& packet, NetworkGameState& networkGameState) {
-    packet >> networkGameState.uniqueId >> networkGameState.name >> networkGameState.currentMap;
+    packet >> networkGameState.uniqueId >> networkGameState.name >> networkGameState.currentMap >> networkGameState.walkBikeSurfState;
     
     auto& playerPosition = networkGameState.playerPosition;
     packet >> playerPosition.yPosition >> playerPosition.xPosition 
@@ -61,7 +61,7 @@ sf::Packet& operator <<(sf::Packet& packet, const HostGameState& hostGameState) 
     packet << static_cast<unsigned int>(hostGameState.playerGameStates.size());
     for (auto& playerGameState : hostGameState.playerGameStates) {
         auto& playerPosition = playerGameState.playerPosition;
-        packet << playerGameState.uniqueId << playerGameState.name << playerGameState.currentMap
+        packet << playerGameState.uniqueId << playerGameState.name << playerGameState.currentMap << playerGameState.walkBikeSurfState
                << playerPosition.yPosition << playerPosition.xPosition
                << playerPosition.yBlockPosition << playerPosition.xBlockPosition;
     }
@@ -86,7 +86,7 @@ sf::Packet& operator >>(sf::Packet& packet, HostGameState& hostGameState) {
     for (unsigned int index = 0; index < playerCount; ++index) {
         auto& playerGameState = hostGameState.playerGameStates[index];
         auto& playerPosition = playerGameState.playerPosition;
-        packet >> playerGameState.uniqueId >> playerGameState.name >> playerGameState.currentMap
+        packet >> playerGameState.uniqueId >> playerGameState.name >> playerGameState.currentMap >> playerGameState.walkBikeSurfState
                >> playerPosition.yPosition >> playerPosition.xPosition 
                >> playerPosition.yBlockPosition >> playerPosition.xBlockPosition; 
     }

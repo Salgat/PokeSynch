@@ -56,6 +56,7 @@ struct SimulatedPlayerState {
     PlayerDirection direction;
     bool alternateStep; // Tracks the frame to show when walking
     int uniqueId;
+    int walkBikeSurfState;
 };
 
 /**
