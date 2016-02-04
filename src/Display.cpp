@@ -569,7 +569,6 @@ void Display::DrawSpriteToImage(sf::Image spriteImage, int frameNumber, int pixe
  */
 void Display::WalkSimulatedPlayer(SimulatedPlayerState& simulatedPlayerState, PlayerDirection direction) {
     int walkOffset = 0;
-    simulatedPlayerState.direction = direction;
     if (simulatedPlayerState.walkCounter >= 16) {
         // Update direction first
         simulatedPlayerState.direction = direction;
@@ -581,6 +580,10 @@ void Display::WalkSimulatedPlayer(SimulatedPlayerState& simulatedPlayerState, Pl
     } else if (simulatedPlayerState.walkCounter >= 4) {
         simulatedPlayerState.walkCounter += 1;
     } else {
+        if (simulatedPlayerState.walkCounter == 0) {
+            simulatedPlayerState.direction = direction;
+        }
+        
         simulatedPlayerState.walkCounter += 1;
     }
 
