@@ -499,26 +499,35 @@ sf::Image Display::DisplayPlayers(HostGameState hostGameState, int myUniqueId) {
                 frameNumber = 0;
             } else {
                 frameNumber = 3;
+                if (simulatedPlayerState.walkCounter <= 8) flipHorizontal = true;
             }
         } else if (simulatedPlayerState.direction == PlayerDirection::DOWN) {
             if (simulatedPlayerState.walkCounter == 0) {
                 frameNumber = 1;
             } else {
                 frameNumber = 4;
+                if (simulatedPlayerState.walkCounter <= 8) flipHorizontal = true;
             }
         } else if (simulatedPlayerState.direction == PlayerDirection::LEFT) {
             if (simulatedPlayerState.walkCounter == 0) {
                 frameNumber = 2;
             } else {
-                frameNumber = 5;
+                if (simulatedPlayerState.walkCounter <= 8) {
+                    frameNumber = 5;
+                } else {
+                    frameNumber = 2;
+                }
             }
-            
             flipHorizontal = true;
         } else if (simulatedPlayerState.direction == PlayerDirection::RIGHT) {
             if (simulatedPlayerState.walkCounter == 0) {
                 frameNumber = 2;
             } else {
-                frameNumber = 5;
+                if (simulatedPlayerState.walkCounter <= 8) {
+                    frameNumber = 5;
+                } else {
+                    frameNumber = 2;
+                }
             }
         }
         
