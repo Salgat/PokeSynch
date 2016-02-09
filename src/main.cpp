@@ -8,7 +8,7 @@ using namespace std::literals;
 
 sf::RenderWindow window;
 
-void DrawFrame(sf::Image const& frame) {
+void DrawFrame(sf::Image const& frame, GameBoy& gameBoy) {
     window.clear(sf::Color::Green);
 	
     sf::Texture texture;
@@ -17,6 +17,10 @@ void DrawFrame(sf::Image const& frame) {
     sprite.setTexture(texture);
 	
     window.draw(sprite);
+    
+    // Draw any pending text
+    gameBoy.display.RenderText(window);
+    
     window.display();
 }
 
@@ -58,7 +62,7 @@ int main(int argc, char* argv[]) {
 	auto next_frame = start_time + 16.75041876ms;
     while(running) {
 		auto result = gameboy.RenderFrame();
-        DrawFrame(result.first);
+        DrawFrame(result.first, gameboy);
         running = result.second;
         
 		std::this_thread::sleep_until(next_frame);

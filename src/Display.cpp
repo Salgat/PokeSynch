@@ -19,7 +19,7 @@ void Display::Initialize(Processor* cpu_, MemoryManagementUnit* mmu_) {
     cpu = cpu_;
     mmu = mmu_;
     
-    // Load textures 
+    // Load sprite textures 
     std::array<std::string, 3> textureFileNames = {"../../data/sprites/red.png",
                                                    "../../data/sprites/cycling.png",
                                                    "../../data/sprites/swimming.png"};
@@ -32,6 +32,25 @@ void Display::Initialize(Processor* cpu_, MemoryManagementUnit* mmu_) {
         image.loadFromFile(fileName);
         spriteImages.push_back(image);
     }
+    
+    // Load text window textures
+    std::array<std::string, 3> textureTextFileNames = {"../../data/misc/arrow.png",
+                                                       "../../data/misc/smaller_text_window.png",
+                                                       "../../data/misc/text_window.png"};
+    for (const auto& fileName : textureTextFileNames) {
+        sf::Texture texture;
+        texture.loadFromFile(fileName);
+        windowTextures.push_back(texture);
+        
+        sf::Image image;
+        image.loadFromFile(fileName);
+        windowImages.push_back(image);
+    }
+    
+    // Load fonts
+    sf::Font font;
+    font.loadFromFile("../../data/font/PokemonGB.ttf");
+    fonts.push_back(font);
 }
 
 void Display::Reset() {
@@ -672,4 +691,57 @@ void Display::WalkSimulatedPlayer(SimulatedPlayerState& simulatedPlayerState, Pl
                 break;
         }
     }
+}
+
+/**
+ * Displays at the bottom the pokemon text box and displays the message. This should be ran last as it writes over the current frame.
+ */
+sf::Image Display::DrawWindowWithText(const std::string& message, int line) {
+    // First draw the message window
+    if (!textWindowDrawn) {
+        DrawImage(0, kWindowOffsetY, windowImages[2]);
+        textWindowDrawn = true;
+    }
+    
+    // Then draw the text to a texture of the image
+    sf::Text text;
+    text.setFont(fonts[0]);
+    text.setString(message);
+    text.setCharacterSize(8);
+    text.setColor(sf::Color::Black);
+    
+    TextToDisplay textToDisplay;
+    textToDisplay.offsetY = kWindowOffsetY + 15;
+    textToDisplay.offsetX = 7;
+    textToDisplay.text = text;
+    textToDisplay.line = line;
+    textQueue.push(textToDisplay);
+    
+    return frame;
+}
+
+/**
+ * Draws the provided sf::Image with the given offsets.
+ */
+void Display::DrawImage(unsigned int xOffset, unsigned int yOffset, const sf::Image& image) {
+    auto imageSize = image.getSize();
+    for (int x = 0; x < imageSize.x; ++x) {
+        for (int y = 0; y < imageSize.y; ++y) {
+            auto pixel = image.getPixel(x, y);
+            frame.setPixel(x+xOffset, y+yOffset, pixel);
+        }
+    }
+}
+
+/**
+ * Renders any pending text to render window.
+ */
+void Display::RenderText(sf::RenderWindow& window) {
+    while (!textQueue.empty()) {
+        auto& textToDisplay = textQueue.front();
+        textToDisplay.text.setPosition(textToDisplay.offsetX, textToDisplay.offsetY + textToDisplay.line*13);
+        window.draw(textToDisplay.text);
+        textQueue.pop();
+    }
+    textWindowDrawn = false;
 }

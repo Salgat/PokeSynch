@@ -76,8 +76,10 @@ std::pair<sf::Image, bool> GameBoy::RenderFrame() {
 	} while(cpu.clock < cpu.frame_clock);
 	
 	if (!v_blank) {
-		frame = display.RenderFrame();
-        frame = display.DisplayPlayers(hostGameState, network.uniqueId);
+		display.RenderFrame();
+        display.DisplayPlayers(hostGameState, network.uniqueId);
+        display.DrawWindowWithText("Testing!", 0);
+        frame = display.DrawWindowWithText("Line 2 testing.", 1);
 	}
 	
 	return std::make_pair(frame, running);

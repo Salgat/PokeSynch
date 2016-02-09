@@ -9,6 +9,7 @@
 #include <utility>
 #include <algorithm>
 #include <array>
+#include <queue>
 
 // SFML
 #include <SFML/Audio.hpp>
@@ -60,6 +61,18 @@ struct SimulatedPlayerState {
 };
 
 /**
+ * Holds instructions for what text to display.
+ */
+struct TextToDisplay {
+    int offsetY;
+    int offsetX;
+    int line; // Either the first or second line of text
+    sf::Text text;
+};
+
+const unsigned int kWindowOffsetY = 144 - 48; // Window height is 48 pixels
+
+/**
  * Handles rendering to the "screen".
  */
 class Display {
@@ -84,6 +97,8 @@ public:
     // Synchronize Logic
     sf::Image DisplayPlayers(HostGameState hostGameState, int myUniqueId);
     void DrawSpriteToImage(sf::Image spriteImage, int frame, int pixelPositionX, int pixelPositionY);
+    sf::Image DrawWindowWithText(const std::string& message, int line);
+    void RenderText(sf::RenderWindow& window);
     
     std::unordered_map<int, SimulatedPlayerState> simulatedPlayerStates;
 	
@@ -100,11 +115,16 @@ private:
     std::vector<bool> show_sprite;
     std::vector<bool> sprite_priority; // 0 = False, 1 = True
 	std::array<Sprite, 40> sprite_array;
+    std::queue<TextToDisplay> textQueue;
     
     // Synchronize Properties
     std::vector<sf::Texture> spriteTextures;
     std::vector<sf::Image> spriteImages;
     std::unordered_map<int, int> spriteFrame;
+    std::vector<sf::Font> fonts;
+    std::vector<sf::Texture> windowTextures;
+    std::vector<sf::Image> windowImages;
+    bool textWindowDrawn;
 
     std::array<int, 8> DrawTilePattern(uint16_t tile_address, int tile_line);
 	void DrawBackground(uint8_t lcd_control, int line_number);
@@ -112,6 +132,7 @@ private:
 	void DrawBackgroundOrWindow(uint8_t lcd_control, int line_number, bool is_background);
     std::vector<Sprite*> ReadSprites(uint8_t lcd_control);
     void DrawSprites(uint8_t lcd_control, int line_number, std::vector<Sprite*> const& sprites);
+    void DrawImage(unsigned int xOffset, unsigned int yOffset, const sf::Image& image);
     
     // Synchronize Logic
     void DrawSpriteToImage(sf::Image spriteImage, int frameNumber, int pixelPositionX, int pixelPositionY, bool flipHorizontal);
