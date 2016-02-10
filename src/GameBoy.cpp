@@ -37,6 +37,7 @@ void GameBoy::Reset() {
     timer.Reset();
     
     synchronizedMap = false;
+    initiateBattleFlag = false;
 }
 
 // Todo: Frame calling v-blank 195-196x per frame??
@@ -45,6 +46,13 @@ std::pair<sf::Image, bool> GameBoy::RenderFrame() {
     NetworkGameState localGameState = CreateGameState();
     auto hostGameState = network.Update(localGameState);
     UpdateLocalGameState(hostGameState, network.isHost);
+    
+    if (initiateBattleFlag) {
+        InitiateBattle();
+        initiateBattleFlag = false;
+    }
+    
+    //DebugPrint();
     
     bool running = (input.PollEvents())?true:false;
 	cpu.frame_clock = cpu.clock + 17556; // Number of cycles/4 for one frame before v-blank
@@ -78,11 +86,11 @@ std::pair<sf::Image, bool> GameBoy::RenderFrame() {
 	if (!v_blank) {
 		display.RenderFrame();
         display.DisplayPlayers(hostGameState, network.uniqueId);
-        display.DrawWindowWithText("PokeSynch Testing!", 0);
+        /*display.DrawWindowWithText("PokeSynch Testing!", 0);
         display.DrawWindowWithText("Line 2 testing.", 1);
         
         display.DrawOptionsWindowWithText("BATTLE", 0, true);
-        display.DrawOptionsWindowWithText("TRADE", 1, false);
+        display.DrawOptionsWindowWithText("TRADE", 1, false);*/
 	}
 	
 	return std::make_pair(display.frame, running);
@@ -267,4 +275,30 @@ bool GameBoy::SpriteCollisionInFront(const HostGameState& hostGameState) {
     }
     
     return false;
+}
+
+/**
+ * Initiates a battle in game with a trainer.
+ */
+void GameBoy::InitiateBattle() {
+    // Set my first pokemon to level 94 and set the appropriate experience
+    mmu.WriteByte(0xd16b + 25 + 8, 94);
+    mmu.WriteByte(0xd16b + 14 + 0, 0x08);
+    
+    // wCurOpponent is found at TrainerDataPointers where YoungsterData (the first) is at 201
+    // wTrainerNo indicates which index in that wCurOpponent type to choose (starting at 1 for the first)
+    
+    mmu.WriteByte(0xd057, 0x2); // wIsInBattle
+    mmu.WriteByte(0xd05a, 0x0); // wBattleType
+    mmu.WriteByte(0xd059, 247); // wCurOpponent
+    mmu.WriteByte(0xd713, 247); // wEnemyMonOrTrainerClass
+    mmu.WriteByte(0xd05d, 1); // wTrainerNo
+}
+
+void GameBoy::DebugPrint() {
+    std::cout << "wIsInBattle: " << static_cast<int>(mmu.ReadByte(0xd057)) 
+              << "\twBattleType: " << static_cast<int>(mmu.ReadByte(0xd05a))
+              << "\twCurOpponent: " << static_cast<int>(mmu.ReadByte(0xd059))
+              << "\twEnemMonOrTrainerClass: " << static_cast<int>(mmu.ReadByte(0xd713))
+              << "\twTrainerNo: " << static_cast<int>(mmu.ReadByte(0xd05d)) << std::endl;
 }

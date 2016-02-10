@@ -25,6 +25,7 @@ void Input::Initialize(MemoryManagementUnit* mmu_, Display* display_,
 	timer = timer_;
 	cpu = cpu_;
     window = window_;
+    gameboy = gameboy_;
 }
 
 /**
@@ -183,6 +184,11 @@ bool Input::PollEvents() {
 				case sf::Keyboard::RBracket:
 				
 					break;
+                    
+                // Initiate a battle (TODO: TESTING)
+                case sf::Keyboard::B:
+                    gameboy->initiateBattleFlag = true;
+                    break;
 			}
 		}
     }

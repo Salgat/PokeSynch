@@ -44,6 +44,8 @@ public:
 
 //private:
     sf::Image frame;
+    bool initiateBattleFlag;
+    bool synchronizedMap;
 
     Processor cpu;
     MemoryManagementUnit mmu;
@@ -58,7 +60,8 @@ public:
     bool TileCollisionInFront(const HostGameState& hostGameState);
     bool SpriteCollisionInFront(const HostGameState& hostGameState);
     
-    bool synchronizedMap;
+    void InitiateBattle();
+    void DebugPrint();
 };
 
 #endif //GAMEBOYEMULATOR_GAMEBOY_HPP

@@ -55,6 +55,8 @@ public:
 	
 	void SaveGameState(int save_slot);
 	void LoadGameState(int save_slot);
+    
+    bool initiateBattleFlag;
 
 private:
     MemoryManagementUnit* mmu;
