@@ -161,7 +161,7 @@ bool Input::PollEvents() {
 					
 				// Print Screen (original resolution)	
 				case sf::Keyboard::O:
-					gameboy->frame.saveToFile(mmu->game_title + ".png");
+					display->frame.saveToFile(mmu->game_title + ".png");
 					break;
 					
 				// Increase screen size

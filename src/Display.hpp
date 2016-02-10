@@ -91,25 +91,25 @@ public:
 
     void Initialize(Processor* cpu_, MemoryManagementUnit* mmu_);
     void Reset();
-	sf::Image RenderFrame();
+	void RenderFrame();
     void RenderScanline(uint8_t line_number);
 	
 	void UpdateSprite(uint8_t sprite_address, uint8_t value);
     
     // Synchronize Logic
-    sf::Image DisplayPlayers(HostGameState hostGameState, int myUniqueId);
+    void DisplayPlayers(HostGameState hostGameState, int myUniqueId);
     void DrawSpriteToImage(sf::Image spriteImage, int frame, int pixelPositionX, int pixelPositionY);
-    sf::Image DrawWindowWithText(const std::string& message, int line);
-    sf::Image DrawOptionsWindowWithText(const std::string& message, int line, bool selected);
+    void DrawWindowWithText(const std::string& message, int line);
+    void DrawOptionsWindowWithText(const std::string& message, int line, bool selected);
     void RenderText(sf::RenderWindow& window);
     
+	sf::Image frame;
     std::unordered_map<int, SimulatedPlayerState> simulatedPlayerStates;
 	
 private:
     Processor* cpu;
     MemoryManagementUnit* mmu;
 
-	sf::Image frame;
     std::vector<sf::Color> background;
     std::vector<bool> show_background;
     std::vector<sf::Color> window;

@@ -82,10 +82,10 @@ std::pair<sf::Image, bool> GameBoy::RenderFrame() {
         display.DrawWindowWithText("Line 2 testing.", 1);
         
         display.DrawOptionsWindowWithText("BATTLE", 0, true);
-        frame = display.DrawOptionsWindowWithText("TRADE", 1, false);
+        display.DrawOptionsWindowWithText("TRADE", 1, false);
 	}
 	
-	return std::make_pair(frame, running);
+	return std::make_pair(display.frame, running);
 }
 
 NetworkGameState GameBoy::CreateGameState() {

@@ -70,7 +70,7 @@ void Display::Reset() {
 /**
  * Returns the current frame for the GameBoy screen.
  */
-sf::Image Display::RenderFrame() {
+void Display::RenderFrame() {
 	uint8_t lcd_control = mmu->zram[0xFF40 & 0xFF];
 	if (lcd_control & 0x80) {
 		for (int x = 0; x < 160; ++x) {
@@ -90,7 +90,6 @@ sf::Image Display::RenderFrame() {
 	show_background = std::vector<bool>(256*256, false);
 	show_window = std::vector<bool>(256*256, false);
 	show_sprite = std::vector<bool>(256*256, false);
-	return frame;
 }
 
 /**
@@ -427,7 +426,7 @@ void Display::UpdateSprite(uint8_t sprite_address, uint8_t value) {
 /**
  * Goes through each remote player in the game state and displays them on the screen
  */
-sf::Image Display::DisplayPlayers(HostGameState hostGameState, int myUniqueId) {
+void Display::DisplayPlayers(HostGameState hostGameState, int myUniqueId) {
     auto myPositionX = static_cast<int>(mmu->ReadByte(0xd362));
     auto myPositionY = static_cast<int>(mmu->ReadByte(0xd361));
     auto myDirection = static_cast<int>(mmu->ReadByte(0xC109)); // Need to make sure this direction is correct for when the step counter initially updates
@@ -611,8 +610,6 @@ sf::Image Display::DisplayPlayers(HostGameState hostGameState, int myUniqueId) {
     }
     
     mmu->orBitMask[0xC10C] = orCollisionMask;
-    
-    return frame;
 }
 
 /**
@@ -696,7 +693,7 @@ void Display::WalkSimulatedPlayer(SimulatedPlayerState& simulatedPlayerState, Pl
 /**
  * Displays at the bottom the pokemon text box and displays the message. This should be ran last as it writes over the current frame.
  */
-sf::Image Display::DrawWindowWithText(const std::string& message, int line) {
+void Display::DrawWindowWithText(const std::string& message, int line) {
     // First draw the message window
     if (!textWindowDrawn) {
         DrawImage(0, kWindowOffsetY, windowImages[2]);
@@ -716,14 +713,12 @@ sf::Image Display::DrawWindowWithText(const std::string& message, int line) {
     textToDisplay.text = text;
     textToDisplay.line = line;
     textQueue.push(textToDisplay);
-    
-    return frame;
 }
 
 /**
  * Displays the options window text box and one of two options and if they have the cursor selecting that current line.
  */
-sf::Image Display::DrawOptionsWindowWithText(const std::string& message, int line, bool selected) {
+void Display::DrawOptionsWindowWithText(const std::string& message, int line, bool selected) {
     // First draw the message window
     if (!textOptionsWindowDrawn) {
         DrawImage(kOptionsWindowOffsetX, kOptionsWindowOffsetY, windowImages[1]);
@@ -747,8 +742,6 @@ sf::Image Display::DrawOptionsWindowWithText(const std::string& message, int lin
     textToDisplay.text = text;
     textToDisplay.line = line;
     textQueue.push(textToDisplay);
-    
-    return frame;
 }
 
 /**
