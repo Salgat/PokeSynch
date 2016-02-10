@@ -78,8 +78,11 @@ std::pair<sf::Image, bool> GameBoy::RenderFrame() {
 	if (!v_blank) {
 		display.RenderFrame();
         display.DisplayPlayers(hostGameState, network.uniqueId);
-        display.DrawWindowWithText("Testing!", 0);
-        frame = display.DrawWindowWithText("Line 2 testing.", 1);
+        display.DrawWindowWithText("PokeSynch Testing!", 0);
+        display.DrawWindowWithText("Line 2 testing.", 1);
+        
+        display.DrawOptionsWindowWithText("BATTLE", 0, true);
+        frame = display.DrawOptionsWindowWithText("TRADE", 1, false);
 	}
 	
 	return std::make_pair(frame, running);

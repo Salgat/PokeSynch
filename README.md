@@ -1,6 +1,8 @@
 PokeSynch
 =================
 
+![](https://github.com/Salgat/PokeSynch/blob/master/doc/preview.png)
+
 PokeSynch allows multiple players to play Pokemon Red, Blue, or Yellow together online or through a LAN.
 
 Building the project

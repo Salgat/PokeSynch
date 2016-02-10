@@ -721,6 +721,37 @@ sf::Image Display::DrawWindowWithText(const std::string& message, int line) {
 }
 
 /**
+ * Displays the options window text box and one of two options and if they have the cursor selecting that current line.
+ */
+sf::Image Display::DrawOptionsWindowWithText(const std::string& message, int line, bool selected) {
+    // First draw the message window
+    if (!textOptionsWindowDrawn) {
+        DrawImage(kOptionsWindowOffsetX, kOptionsWindowOffsetY, windowImages[1]);
+        textOptionsWindowDrawn = true;
+    }
+    
+    if (selected) {
+        DrawImage(kOptionsWindowOffsetX + 7, kOptionsWindowOffsetY + 8*(line+1)+1, windowImages[0]);
+    }
+    
+    // Then draw the text to a texture of the image
+    sf::Text text;
+    text.setFont(fonts[0]);
+    text.setString(message);
+    text.setCharacterSize(8);
+    text.setColor(sf::Color::Black);
+    
+    TextToDisplay textToDisplay;
+    textToDisplay.offsetY = kOptionsWindowOffsetY + 8;
+    textToDisplay.offsetX = kOptionsWindowOffsetX + 15;
+    textToDisplay.text = text;
+    textToDisplay.line = line;
+    textQueue.push(textToDisplay);
+    
+    return frame;
+}
+
+/**
  * Draws the provided sf::Image with the given offsets.
  */
 void Display::DrawImage(unsigned int xOffset, unsigned int yOffset, const sf::Image& image) {
@@ -728,7 +759,11 @@ void Display::DrawImage(unsigned int xOffset, unsigned int yOffset, const sf::Im
     for (int x = 0; x < imageSize.x; ++x) {
         for (int y = 0; y < imageSize.y; ++y) {
             auto pixel = image.getPixel(x, y);
-            frame.setPixel(x+xOffset, y+yOffset, pixel);
+            
+            // Only draw non-transparent pixels
+            if (pixel.a == 255) {
+                frame.setPixel(x+xOffset, y+yOffset, pixel);
+            }
         }
     }
 }
@@ -744,4 +779,5 @@ void Display::RenderText(sf::RenderWindow& window) {
         textQueue.pop();
     }
     textWindowDrawn = false;
+    textOptionsWindowDrawn = false;
 }

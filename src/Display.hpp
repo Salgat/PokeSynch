@@ -71,6 +71,8 @@ struct TextToDisplay {
 };
 
 const unsigned int kWindowOffsetY = 144 - 48; // Window height is 48 pixels
+const unsigned int kOptionsWindowOffsetY = kWindowOffsetY - 40; // Window height is 40 pixels
+const unsigned int kOptionsWindowOffsetX = 160 - 73;
 
 /**
  * Handles rendering to the "screen".
@@ -98,6 +100,7 @@ public:
     sf::Image DisplayPlayers(HostGameState hostGameState, int myUniqueId);
     void DrawSpriteToImage(sf::Image spriteImage, int frame, int pixelPositionX, int pixelPositionY);
     sf::Image DrawWindowWithText(const std::string& message, int line);
+    sf::Image DrawOptionsWindowWithText(const std::string& message, int line, bool selected);
     void RenderText(sf::RenderWindow& window);
     
     std::unordered_map<int, SimulatedPlayerState> simulatedPlayerStates;
@@ -125,6 +128,7 @@ private:
     std::vector<sf::Texture> windowTextures;
     std::vector<sf::Image> windowImages;
     bool textWindowDrawn;
+    bool textOptionsWindowDrawn;
 
     std::array<int, 8> DrawTilePattern(uint16_t tile_address, int tile_line);
 	void DrawBackground(uint8_t lcd_control, int line_number);
