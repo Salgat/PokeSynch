@@ -312,12 +312,12 @@ void MemoryManagementUnit::Reset() {
  * Returns byte read from provided address
  */
 uint8_t MemoryManagementUnit::ReadByte(uint16_t address) {    
-    if (overridePokemonParty and address >= 0xd16b and address < 0xd273) {
+    if (overridePokemonParty and address >= 0xd163 and address < 0xd273) {
         // If overriding pokemon party, use the pre-defined memory block
-        return wPartyMons[address - 0xd16b];
+        return wPartyMons[address - 0xd163];
     }
-    if (overrideEnemyParty and address >= 0xd8a4 and address < 0xd9ac) {
-        return wEnemyMons[address - 0xd8a4];
+    if (overrideEnemyParty and address >= 0xd89c and address < 0xd9ac) {
+        return wEnemyMons[address - 0xd89c];
     }
     
     switch(address & 0xF000) {
@@ -720,13 +720,26 @@ void MemoryManagementUnit::TransferToOAM(uint16_t origin) {
 /**
  * Overrides the party monsters of either the player's or the opponent.
  */
-void MemoryManagementUnit::SetPartyMonsters(const std::vector<Pokemon>& party, bool enemy) {
+void MemoryManagementUnit::SetPartyMonsters(const std::vector<Pokemon>& party, const std::array<uint8_t, 8>& partyData, bool enemy) {
     if (!enemy) {
         overridePokemonParty = true;
-        PopulateParty(party, wPartyMons);
+        PopulateParty(party, partyData, wPartyMons);
     } else {
         overrideEnemyParty = true;
-        PopulateParty(party, wEnemyMons);
+        PopulateParty(party, partyData, wEnemyMons);
+    }
+}
+
+/**
+ * Overrides the party monsters of either the player's or the opponent.
+ */
+void MemoryManagementUnit::SetPartyMonsters(const std::array<uint8_t, 0x108+8>& party, bool enemy) {
+    if (!enemy) {
+        overridePokemonParty = true;
+        wPartyMons = party;
+    } else {
+        overrideEnemyParty = true;
+        wEnemyMons = party;
     }
 }
 
@@ -744,8 +757,12 @@ void MemoryManagementUnit::ResetPartyMonsters(bool enemy) {
 /**
  * Populates the provided pokemon party array.
  */
-void MemoryManagementUnit::PopulateParty(const std::vector<Pokemon>& party, std::array<uint8_t, 0x108>& partyArray) {
-    int offset = 0;
+void MemoryManagementUnit::PopulateParty(const std::vector<Pokemon>& party, const std::array<uint8_t, 8>& partyData, std::array<uint8_t, 0x108+8>& partyArray) {
+    for (unsigned int index = 0; index < 8; ++index) {
+        partyArray[index] = partyData[index];
+    }
+    
+    int offset = 8;
     for (const auto& pokemon : party) {
         partyArray[offset + 0x00] = pokemon.species;
         partyArray[offset + 0x01] = pokemon.hp & 0xFF; // LSB
@@ -794,4 +811,18 @@ void MemoryManagementUnit::PopulateParty(const std::vector<Pokemon>& party, std:
         
         offset += 0x2C; // Offset to next party_struct
     }
+}
+
+/**
+ * Returns an array of the pokemon party.
+ */
+std::array<uint8_t, 0x108+8> MemoryManagementUnit::SavePartyMonstersFromMemory(bool enemy) {
+    std::array<uint8_t, 0x108+8> party;
+    unsigned int offset = !enemy ? 0xd163 : 0xd89c;
+    
+    for (unsigned int index = 0; index < 0x108+8; ++index) {
+        party[index] = wram[(offset+index) & 0x1FFF];
+    }
+    
+    return party;
 }

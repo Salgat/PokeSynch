@@ -189,6 +189,21 @@ bool Input::PollEvents() {
                 case sf::Keyboard::B:
                     gameboy->initiateBattleFlag = true;
                     break;
+                    
+                // Save pokemon party state
+                case sf::Keyboard::Q:
+                    pokemonParty = mmu->SavePartyMonstersFromMemory(true);
+                    break;
+                
+                // Override pokemon party state
+                case sf::Keyboard::W:
+                    mmu->SetPartyMonsters(pokemonParty, true);
+                    break;
+                
+                // Disable pokemon party override
+                case sf::Keyboard::E:
+                    mmu->ResetPartyMonsters(true);
+                    break;
 			}
 		}
     }

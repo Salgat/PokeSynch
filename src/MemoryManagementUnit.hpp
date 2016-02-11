@@ -96,7 +96,9 @@ public:
     std::set<uint16_t> ignoreMemoryWrites;
     std::unordered_map<uint16_t, uint8_t> orBitMask; // Bitwise OR for WRAM address with provided value
     
-    void SetPartyMonsters(const std::vector<Pokemon>& party, bool enemy); // Overrides party monsters
+    void SetPartyMonsters(const std::vector<Pokemon>& party, const std::array<uint8_t, 8>& partyData, bool enemy); // Overrides party monsters
+    void SetPartyMonsters(const std::array<uint8_t, 0x108+8>& party, bool enemy);
+    std::array<uint8_t, 0x108+8> SavePartyMonstersFromMemory(bool enemy);
     void ResetPartyMonsters(bool enemy); // Disables party monsters override
 
 private:
@@ -106,12 +108,12 @@ private:
 	Timer* timer;
 
     void TransferToOAM(uint16_t origin);
-    void PopulateParty(const std::vector<Pokemon>& party, std::array<uint8_t, 0x108>& partyArray);
+    void PopulateParty(const std::vector<Pokemon>& party, const std::array<uint8_t, 8>& partyData, std::array<uint8_t, 0x108+8>& partyArray);
     
     bool overridePokemonParty;
     bool overrideEnemyParty;
-    std::array<uint8_t, 0x108> wPartyMons;
-    std::array<uint8_t, 0x108> wEnemyMons;
+    std::array<uint8_t, 0x108 + 8> wPartyMons;
+    std::array<uint8_t, 0x108 + 8> wEnemyMons;
 };
 
 #endif //GAMEBOYEMULATOR_MEMORYMANAGEMENTUNIT_HPP

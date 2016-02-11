@@ -70,6 +70,8 @@ private:
     uint8_t column;
 	
 	int current_save_slot;
+    
+    std::array<uint8_t, 0x108 + 8> pokemonParty;
 	
 	// Helper Function
 	void SaveCharVector(serq::SerializeQueue& save_data, std::vector<uint8_t>& data, std::size_t length);
