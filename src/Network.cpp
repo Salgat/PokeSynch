@@ -27,6 +27,10 @@ sf::Packet& operator <<(sf::Packet& packet, const NetworkGameState& networkGameS
                << sprite.canMove << sprite.inGrass;    
     }
     
+    for (unsigned int index = 0; index < 0x108 + 8; ++index) {
+        packet << networkGameState.partyMonsters[index];
+    }
+    
     return packet;
 }
 
@@ -51,6 +55,10 @@ sf::Packet& operator >>(sf::Packet& packet, NetworkGameState& networkGameState) 
                >> sprite.canMove >> sprite.inGrass;    
     }
     
+    for (unsigned int index = 0; index < 0x108 + 8; ++index) {
+        packet >> networkGameState.partyMonsters[index];
+    }
+    
     return packet;
 }
 
@@ -64,6 +72,10 @@ sf::Packet& operator <<(sf::Packet& packet, const HostGameState& hostGameState) 
         packet << playerGameState.uniqueId << playerGameState.name << playerGameState.currentMap << playerGameState.walkBikeSurfState
                << playerPosition.yPosition << playerPosition.xPosition
                << playerPosition.yBlockPosition << playerPosition.xBlockPosition;
+               
+        for (unsigned int index = 0; index < 0x108 + 8; ++index) {
+            packet << playerGameState.partyMonsters[index];
+        }
     }
 
     packet << static_cast<unsigned int>(hostGameState.sprites.size());
@@ -89,6 +101,10 @@ sf::Packet& operator >>(sf::Packet& packet, HostGameState& hostGameState) {
         packet >> playerGameState.uniqueId >> playerGameState.name >> playerGameState.currentMap >> playerGameState.walkBikeSurfState
                >> playerPosition.yPosition >> playerPosition.xPosition 
                >> playerPosition.yBlockPosition >> playerPosition.xBlockPosition; 
+               
+        for (unsigned int index = 0; index < 0x108 + 8; ++index) {
+            packet >> playerGameState.partyMonsters[index];
+        }
     }
 
     unsigned int spriteCount;

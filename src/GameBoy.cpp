@@ -125,6 +125,11 @@ NetworkGameState GameBoy::CreateGameState() {
         sprite.inGrass = mmu.wram[offset2 + 0x7];
     }
     
+    unsigned int offset = 0xd163;
+    for (unsigned int index = 0; index < 0x108+8; ++index) {
+        localGameState.partyMonsters[index] = mmu.wram[(offset+index) & 0x1FFF];
+    }
+    
     return localGameState;
 }
 
