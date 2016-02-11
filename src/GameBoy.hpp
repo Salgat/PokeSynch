@@ -12,6 +12,7 @@
 #include <SFML/System.hpp>
 
 #include <Utility>
+#include <array>
 
 #include "Processor.hpp"
 #include "MemoryManagementUnit.hpp"
@@ -26,6 +27,38 @@
 struct LocalSpriteState {
     int frame;
     int animationCounter;
+};
+
+/**
+ * Defines a pokemon (party_struct).
+ */
+struct Pokemon {
+    // box_struct
+    uint8_t species;
+    uint16_t hp;
+    uint8_t boxLevel;
+    uint8_t status;
+    uint8_t type1;
+    uint8_t type2;
+    uint8_t catchRate;
+    std::array<uint8_t, 4> moves;
+    uint16_t originalTrainerId;
+    std::array<uint8_t, 3> experience;
+    uint16_t hpExp;
+    uint16_t attackExp;
+    uint16_t defenseExp;
+    uint16_t speedExp;
+    uint16_t specialExp;
+    std::array<uint8_t, 2> dv;
+    std::array<uint8_t, 4> pp;
+    
+    // party_struct
+    uint8_t level;
+    uint16_t maxHP;
+    uint16_t attack;
+    uint16_t defense;
+    uint16_t speed;
+    uint16_t special;
 };
 
 /**

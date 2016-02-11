@@ -12,6 +12,7 @@
 #include "Processor.hpp"
 #include "Timer.hpp"
 #include "Display.hpp"
+#include "Gameboy.hpp"
 
 /**
  * Initialize memory
@@ -58,6 +59,9 @@ void MemoryManagementUnit::Initialize(Processor* cpu_, Input* input_, Display* d
 }
 
 void MemoryManagementUnit::Reset() {
+    overridePokemonParty = false;
+    overrideEnemyParty = false;
+    
     bios_mode = false;//true;
     bios = {0x31, 0xFE, 0xFF, 0xAF, 0x21, 0xFF, 0x9F, 0x32, 0xCB, 0x7C, 0x20, 0xFB, 0x21, 0x26, 0xFF, 0x0E, // 16/row (0-15)
             0x11, 0x3E, 0x80, 0x32, 0xE2, 0x0C, 0x3E, 0xF3, 0xE2, 0x32, 0x3E, 0x77, 0x77, 0x3E, 0xFC, 0xE0, // 16-31
@@ -308,6 +312,14 @@ void MemoryManagementUnit::Reset() {
  * Returns byte read from provided address
  */
 uint8_t MemoryManagementUnit::ReadByte(uint16_t address) {    
+    if (overridePokemonParty and address >= 0xd16b and address < 0xd273) {
+        // If overriding pokemon party, use the pre-defined memory block
+        return wPartyMons[address - 0xd16b];
+    }
+    if (overrideEnemyParty and address >= 0xd8a4 and address < 0xd9ac) {
+        return wEnemyMons[address - 0xd8a4];
+    }
+    
     switch(address & 0xF000) {
         // ROM bank 0
         case 0x0000:
@@ -702,5 +714,27 @@ void MemoryManagementUnit::TransferToOAM(uint16_t origin) {
         uint8_t value = ReadByte(origin+offset);
         oam[offset] = value;
 		display->UpdateSprite(offset, value);
+    }
+}
+
+/**
+ * Overrides the party monsters of either the player's or the opponent.
+ */
+void MemoryManagementUnit::SetPartyMonsters(const std::vector<Pokemon>& party, bool enemy) {
+    if (!enemy) {
+        overridePokemonParty = true;
+    } else {
+        overrideEnemyParty = true;
+    }
+}
+
+/**
+ * Removes the override for the party. This should be called after the battle starts (before the first move is made).
+ */
+void MemoryManagementUnit::ResetPartyMonsters(bool enemy) {
+    if (!enemy) {
+        overridePokemonParty = false;
+    } else {
+        overrideEnemyParty = false;
     }
 }

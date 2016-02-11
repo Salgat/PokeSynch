@@ -286,6 +286,8 @@ void GameBoy::InitiateBattle() {
     mmu.WriteByte(0xd16b + 14 + 0, 0x08);
     
     // wCurOpponent is found at TrainerDataPointers where YoungsterData (the first) is at 201
+    // Use https://github.com/pret/pokered/blob/351146024bdd386c328af0f2abdb04e728e4c133/constants/trainer_constants.asm
+    // with 200 + number
     // wTrainerNo indicates which index in that wCurOpponent type to choose (starting at 1 for the first)
     
     mmu.WriteByte(0xd057, 0x2); // wIsInBattle

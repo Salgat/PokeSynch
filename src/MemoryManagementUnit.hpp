@@ -57,6 +57,7 @@ class Processor;
 class Input;
 class Display;
 class Timer;
+class Pokemon;
 
 class MemoryManagementUnit {
 public:
@@ -94,6 +95,9 @@ public:
     // Anything that has a key is ignored for writes
     std::set<uint16_t> ignoreMemoryWrites;
     std::unordered_map<uint16_t, uint8_t> orBitMask; // Bitwise OR for WRAM address with provided value
+    
+    void SetPartyMonsters(const std::vector<Pokemon>& party, bool enemy); // Overrides party monsters
+    void ResetPartyMonsters(bool enemy); // Disables party monsters override
 
 private:
     Processor* cpu;
@@ -102,6 +106,11 @@ private:
 	Timer* timer;
 
     void TransferToOAM(uint16_t origin);
+    
+    bool overridePokemonParty;
+    bool overrideEnemyParty;
+    std::array<uint8_t, 0x108> wPartyMons;
+    std::array<uint8_t, 0x108> wEnemyMons;
 };
 
 #endif //GAMEBOYEMULATOR_MEMORYMANAGEMENTUNIT_HPP
