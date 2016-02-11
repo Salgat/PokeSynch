@@ -106,6 +106,7 @@ private:
 	Timer* timer;
 
     void TransferToOAM(uint16_t origin);
+    void PopulateParty(const std::vector<Pokemon>& party, std::array<uint8_t, 0x108>& partyArray);
     
     bool overridePokemonParty;
     bool overrideEnemyParty;

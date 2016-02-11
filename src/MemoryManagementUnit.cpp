@@ -723,8 +723,10 @@ void MemoryManagementUnit::TransferToOAM(uint16_t origin) {
 void MemoryManagementUnit::SetPartyMonsters(const std::vector<Pokemon>& party, bool enemy) {
     if (!enemy) {
         overridePokemonParty = true;
+        PopulateParty(party, wPartyMons);
     } else {
         overrideEnemyParty = true;
+        PopulateParty(party, wEnemyMons);
     }
 }
 
@@ -736,5 +738,60 @@ void MemoryManagementUnit::ResetPartyMonsters(bool enemy) {
         overridePokemonParty = false;
     } else {
         overrideEnemyParty = false;
+    }
+}
+
+/**
+ * Populates the provided pokemon party array.
+ */
+void MemoryManagementUnit::PopulateParty(const std::vector<Pokemon>& party, std::array<uint8_t, 0x108>& partyArray) {
+    int offset = 0;
+    for (const auto& pokemon : party) {
+        partyArray[offset + 0x00] = pokemon.species;
+        partyArray[offset + 0x01] = pokemon.hp & 0xFF; // LSB
+        partyArray[offset + 0x02] = pokemon.hp >> 8; // MSB
+        partyArray[offset + 0x03] = pokemon.boxLevel;
+        partyArray[offset + 0x04] = pokemon.status;
+        partyArray[offset + 0x05] = pokemon.type1;
+        partyArray[offset + 0x06] = pokemon.type2;
+        partyArray[offset + 0x07] = pokemon.catchRate;
+        partyArray[offset + 0x08] = pokemon.moves[0];
+        partyArray[offset + 0x09] = pokemon.moves[1];
+        partyArray[offset + 0x0A] = pokemon.moves[2];
+        partyArray[offset + 0x0B] = pokemon.moves[3];
+        partyArray[offset + 0x0C] = pokemon.originalTrainerId & 0xFF; // LSB
+        partyArray[offset + 0x0D] = pokemon.originalTrainerId >> 8; // MSB
+        partyArray[offset + 0x0E] = pokemon.experience[0];
+        partyArray[offset + 0x0F] = pokemon.experience[1];
+        partyArray[offset + 0x10] = pokemon.experience[2];
+        partyArray[offset + 0x11] = pokemon.hpExp & 0xFF; // LSB
+        partyArray[offset + 0x12] = pokemon.hpExp >> 8; // MSB
+        partyArray[offset + 0x13] = pokemon.attackExp & 0xFF; // LSB
+        partyArray[offset + 0x14] = pokemon.attackExp >> 8; // MSB
+        partyArray[offset + 0x15] = pokemon.defenseExp & 0xFF; // LSB
+        partyArray[offset + 0x16] = pokemon.defenseExp >> 8; // MSB
+        partyArray[offset + 0x17] = pokemon.speedExp & 0xFF; // LSB
+        partyArray[offset + 0x18] = pokemon.speedExp >> 8; // MSB
+        partyArray[offset + 0x19] = pokemon.specialExp & 0xFF; // LSB
+        partyArray[offset + 0x1A] = pokemon.specialExp >> 8; // MSB
+        partyArray[offset + 0x1B] = pokemon.dv[0];
+        partyArray[offset + 0x1C] = pokemon.dv[1];
+        partyArray[offset + 0x1D] = pokemon.pp[0];
+        partyArray[offset + 0x1E] = pokemon.pp[1];
+        partyArray[offset + 0x1F] = pokemon.pp[2];
+        partyArray[offset + 0x20] = pokemon.pp[3];
+        partyArray[offset + 0x21] = pokemon.level;
+        partyArray[offset + 0x22] = pokemon.maxHP & 0xFF; // LSB
+        partyArray[offset + 0x23] = pokemon.maxHP >> 8; // MSB
+        partyArray[offset + 0x24] = pokemon.attack & 0xFF; // LSB
+        partyArray[offset + 0x25] = pokemon.attack >> 8; // MSB
+        partyArray[offset + 0x26] = pokemon.defense & 0xFF; // LSB
+        partyArray[offset + 0x27] = pokemon.defense >> 8; // MSB
+        partyArray[offset + 0x28] = pokemon.speed & 0xFF; // LSB
+        partyArray[offset + 0x29] = pokemon.speed >> 8; // MSB
+        partyArray[offset + 0x2A] = pokemon.special & 0xFF; // LSB
+        partyArray[offset + 0x2B] = pokemon.special >> 8; // MSB
+        
+        offset += 0x2C; // Offset to next party_struct
     }
 }
