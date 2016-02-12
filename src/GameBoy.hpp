@@ -95,6 +95,7 @@ public:
     
     void InitiateBattle();
     void DebugPrint();
+    void DrawDialogueWithPlayer();
 };
 
 #endif //GAMEBOYEMULATOR_GAMEBOY_HPP

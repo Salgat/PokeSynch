@@ -29,6 +29,14 @@ enum class KeyType {
     NONE
 };
 
+enum class PlayerDialogue {
+    SELECT_BATTLE_OR_TRADE,
+    SELECTED_BATTLE,
+    SELECTED_TRADE,
+    NOT_IN_DIALOGUE,
+    NONE
+};
+
 class MemoryManagementUnit;
 class Display;
 class Timer;
@@ -57,6 +65,11 @@ public:
 	void LoadGameState(int save_slot);
     
     bool initiateBattleFlag;
+    
+    // Dialogue with player
+    PlayerDialogue dialogueWithPlayer;
+    int talkingWithPlayer;
+    int currentSelection; // Selection in current menu, 0 = first, 1 = second, etc
 
 private:
     MemoryManagementUnit* mmu;

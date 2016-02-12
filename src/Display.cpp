@@ -726,7 +726,7 @@ void Display::DrawOptionsWindowWithText(const std::string& message, int line, bo
     }
     
     if (selected) {
-        DrawImage(kOptionsWindowOffsetX + 7, kOptionsWindowOffsetY + 8*(line+1)+1, windowImages[0]);
+        DrawImage(kOptionsWindowOffsetX + 7, kOptionsWindowOffsetY + 9 + line * 12, windowImages[0]);
     }
     
     // Then draw the text to a texture of the image

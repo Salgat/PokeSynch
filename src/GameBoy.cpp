@@ -91,6 +91,7 @@ std::pair<sf::Image, bool> GameBoy::RenderFrame() {
         
         display.DrawOptionsWindowWithText("BATTLE", 0, true);
         display.DrawOptionsWindowWithText("TRADE", 1, false);*/
+        DrawDialogueWithPlayer();
 	}
 	
 	return std::make_pair(display.frame, running);
@@ -308,4 +309,29 @@ void GameBoy::DebugPrint() {
               << "\twCurOpponent: " << static_cast<int>(mmu.ReadByte(0xd059))
               << "\twEnemMonOrTrainerClass: " << static_cast<int>(mmu.ReadByte(0xd713))
               << "\twTrainerNo: " << static_cast<int>(mmu.ReadByte(0xd05d)) << std::endl;
+}
+
+/**
+ * Based on the input's current parameters (menu state), draw the corresponding menu.
+ */
+void GameBoy::DrawDialogueWithPlayer() {
+    // Check if in dialogue with player
+    if (input.talkingWithPlayer >= 0 && input.dialogueWithPlayer != PlayerDialogue::NOT_IN_DIALOGUE) {
+        if (input.dialogueWithPlayer == PlayerDialogue::SELECT_BATTLE_OR_TRADE) {
+            // Main menu
+            display.DrawWindowWithText("Select option with other player.", 0);
+            display.DrawWindowWithText("other player.", 1);
+            bool firstSelected = input.currentSelection == 0 ? true : false;
+            display.DrawOptionsWindowWithText("BATTLE", 0, firstSelected);
+            display.DrawOptionsWindowWithText("TRADE", 1, !firstSelected);
+        } else if (input.dialogueWithPlayer == PlayerDialogue::SELECTED_BATTLE) {
+            // Initiating battle with remote player
+            display.DrawWindowWithText("Requesting", 0);
+            display.DrawWindowWithText("battle...", 1);
+        } else if (input.dialogueWithPlayer == PlayerDialogue::SELECTED_TRADE) {
+            // Initiating battle with remote player
+            display.DrawWindowWithText("Requesting", 0);
+            display.DrawWindowWithText("trade...", 1);
+        }
+    }
 }

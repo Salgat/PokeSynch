@@ -35,6 +35,8 @@ void Input::Reset() {
     rows[0] = 0x0F;
     rows[1] = 0x0F;
     column = 0x00;
+    dialogueWithPlayer = PlayerDialogue::NOT_IN_DIALOGUE;
+    currentSelection = 0;
 }
 
 /**
@@ -105,6 +107,7 @@ bool Input::PollEvents() {
             window->close();
             return false;
         } else if (event.type == sf::Event::KeyPressed) {
+            int tempTalkingWithPlayer = -1;
 			switch (event.key.code) {
 				// Choose Save/Load Slot for game
 				case sf::Keyboard::Num1:
@@ -204,6 +207,55 @@ bool Input::PollEvents() {
                 case sf::Keyboard::E:
                     mmu->ResetPartyMonsters(true);
                     break;
+                    
+                // Start dialogue with player
+                // TODO: Verify not in battle first
+                case sf::Keyboard::X:
+                    tempTalkingWithPlayer = display->FacingOtherPlayer();
+                    if (dialogueWithPlayer == PlayerDialogue::SELECT_BATTLE_OR_TRADE) {
+                        if (currentSelection == 0) {
+                            // Initiate battle with player
+                            dialogueWithPlayer = PlayerDialogue::SELECTED_BATTLE;
+                        } else if (currentSelection == 1) {
+                            // Initiate trade with player
+                            dialogueWithPlayer = PlayerDialogue::SELECTED_TRADE;
+                        }
+                    } else if (tempTalkingWithPlayer >= 0 && dialogueWithPlayer == PlayerDialogue::NOT_IN_DIALOGUE) {
+                        // Engage in dialogue with player
+                        talkingWithPlayer = tempTalkingWithPlayer;
+                        dialogueWithPlayer = PlayerDialogue::SELECT_BATTLE_OR_TRADE;
+                    }
+                    break;
+                
+                // Cancel dialogue with player    
+                case sf::Keyboard::Z:
+                    if (dialogueWithPlayer != PlayerDialogue::NOT_IN_DIALOGUE) {
+                        // Cancel dialogue with player
+                        dialogueWithPlayer = PlayerDialogue::NOT_IN_DIALOGUE;
+                    }
+                    break;
+                    
+                // Change selection (Up)
+                case sf::Keyboard::Up:
+                    if (dialogueWithPlayer == PlayerDialogue::SELECT_BATTLE_OR_TRADE) {
+                        if (currentSelection == 0) {
+                            currentSelection = 1;
+                        } else if (currentSelection == 1) {
+                            currentSelection = 0;
+                        }
+                    }
+                    break;
+                    
+                // Change selection (Down)
+                case sf::Keyboard::Down:
+                    if (dialogueWithPlayer == PlayerDialogue::SELECT_BATTLE_OR_TRADE) {
+                        if (currentSelection == 0) {
+                            currentSelection = 1;
+                        } else if (currentSelection == 1) {
+                            currentSelection = 0;
+                        }
+                    }
+                    break;
 			}
 		}
     }
@@ -215,6 +267,9 @@ bool Input::PollEvents() {
  * Upon reading 0xFF00, updates the inputs to be returned.
  */
 void Input::UpdateInput() {
+    // Ignore joystick input while in special dialogue
+    if (dialogueWithPlayer != PlayerDialogue::NOT_IN_DIALOGUE) return;
+    
     static bool left = false;
     static bool right = false;
     static bool up = false;
