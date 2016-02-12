@@ -238,9 +238,7 @@ bool Input::PollEvents() {
                 // Change selection (Up)
                 case sf::Keyboard::Up:
                     if (dialogueWithPlayer == PlayerDialogue::SELECT_BATTLE_OR_TRADE) {
-                        if (currentSelection == 0) {
-                            currentSelection = 1;
-                        } else if (currentSelection == 1) {
+                        if (currentSelection == 1) {
                             currentSelection = 0;
                         }
                     }
@@ -251,8 +249,6 @@ bool Input::PollEvents() {
                     if (dialogueWithPlayer == PlayerDialogue::SELECT_BATTLE_OR_TRADE) {
                         if (currentSelection == 0) {
                             currentSelection = 1;
-                        } else if (currentSelection == 1) {
-                            currentSelection = 0;
                         }
                     }
                     break;
