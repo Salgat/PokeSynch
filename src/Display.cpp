@@ -774,3 +774,36 @@ void Display::RenderText(sf::RenderWindow& window) {
     textWindowDrawn = false;
     textOptionsWindowDrawn = false;
 }
+
+/**
+ * If the player sprite is facing a remote player's sprite, their unique Id is returned, otherwise -1 is returned.
+ */ 
+int Display::FacingOtherPlayer() {
+    auto myPositionX = static_cast<int>(mmu->ReadByte(0xd362));
+    auto myPositionY = static_cast<int>(mmu->ReadByte(0xd361));
+    auto myDirection = static_cast<int>(mmu->ReadByte(0xC109));
+    for (const auto& simulatedPlayerStateEntry : simulatedPlayerStates) {
+        const auto& simulatedPlayerState = simulatedPlayerStateEntry.second;
+        if (myDirection == 0x8 && myPositionX - 1 == simulatedPlayerState.xPosition
+                                   && myPositionY == simulatedPlayerState.yPosition) {
+            // Left Collision
+            return simulatedPlayerState.uniqueId;
+        } else if (myDirection == 0xC && myPositionX + 1 == simulatedPlayerState.xPosition 
+                                          && myPositionY == simulatedPlayerState.yPosition) {    
+            // Right Collision
+            return simulatedPlayerState.uniqueId;
+        } else if (myDirection == 0x4 && myPositionY - 1 == simulatedPlayerState.yPosition 
+                                          && myPositionX == simulatedPlayerState.xPosition) {   
+            // Up Collision
+            return simulatedPlayerState.uniqueId;
+        } else if (myDirection == 0x0 && myPositionY + 1 == simulatedPlayerState.yPosition 
+                                          && myPositionX == simulatedPlayerState.xPosition) {  
+            // Down Collision
+            return simulatedPlayerState.uniqueId;
+        } else {
+            // No collision
+        }
+    }
+    
+    return -1;
+}

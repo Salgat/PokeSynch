@@ -102,6 +102,7 @@ public:
     void DrawWindowWithText(const std::string& message, int line);
     void DrawOptionsWindowWithText(const std::string& message, int line, bool selected);
     void RenderText(sf::RenderWindow& window);
+    int FacingOtherPlayer();
     
 	sf::Image frame;
     std::unordered_map<int, SimulatedPlayerState> simulatedPlayerStates;
