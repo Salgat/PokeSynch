@@ -50,6 +50,7 @@ void Display::Initialize(Processor* cpu_, MemoryManagementUnit* mmu_) {
     // Load fonts
     sf::Font font;
     font.loadFromFile("../../data/font/PokemonGB.ttf");
+    const_cast<sf::Texture&>(font.getTexture(8)).setSmooth(false); // This is to keep the font from being blurred
     fonts.push_back(font);
 }
 

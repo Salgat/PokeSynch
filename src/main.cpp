@@ -12,6 +12,7 @@ void DrawFrame(sf::Image const& frame, GameBoy& gameBoy) {
     window.clear(sf::Color::Green);
 	
     sf::Texture texture;
+    texture.setSmooth(false);
     texture.loadFromImage(frame, sf::IntRect(0, 0, 160, 144));
     sf::Sprite sprite;
     sprite.setTexture(texture);
