@@ -11,10 +11,11 @@
 #include <SFML/Network.hpp>
 #include <SFML/System.hpp>
 
-#include  <unordered_map>
+#include <unordered_map>
 #include <cstdlib>
 #include <iostream>
 #include <ctime>
+#include <queue>
 
 class MemoryManagementUnit;
 class Display;
@@ -116,6 +117,25 @@ struct ConnectResponse {
     int uniqueId; // Assigned from server
 };
 
+
+enum class ResponseType {
+    REFUSE_BATTLE_REQUEST,
+    REFUSE_TRADE_REQUEST,
+    ACCEPT_BATTLE_REQUEST,
+    ACCEPT_TRADE_REQUEST,
+    REQUEST_BATTLE,
+    REQUEST_TRADE,
+    NONE
+};
+
+/**
+ * Used for things like responding to a battle request or sending a trade request.
+ */
+struct GenericRequestResponse {
+    ResponseType responseType;
+    std::vector<int> data; // Usually only contains one value, the target player unique id
+};
+
 /**
  * Handles server and client communication.
  */
@@ -133,6 +153,7 @@ public:
     NetworkMode networkMode;
     bool isHost;
     int uniqueId;
+    std::queue<GenericRequestResponse> pendingRequests;
     
 private:
     MemoryManagementUnit* mmu;

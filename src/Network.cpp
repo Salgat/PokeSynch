@@ -11,6 +11,38 @@ void TestPacket(HostGameState hostGameState);
 // NOTE: Might want to make the connect logic TCP (gauranteed) and update gamestate logic UDP
 
 /**
+ * Serializes a GenericRequestResponse.
+ */
+sf::Packet& operator <<(sf::Packet& packet, const GenericRequestResponse& genericRequestResponse) {
+    packet << genericRequestResponse;
+    
+    packet << static_cast<unsigned int>(genericRequestResponse.data.size());
+    for (auto value : genericRequestResponse.data) {
+        packet << value;
+    }
+    
+    return packet;
+}
+
+/**
+ * Deserializes a GenericRequestResponse.
+ */
+sf::Packet& operator >>(sf::Packet& packet, GenericRequestResponse& genericRequestResponse) {
+    packet >> genericRequestResponse;
+    
+    unsigned int valuesCount;
+    packet >> valuesCount;
+    genericRequestResponse.data.resize(valuesCount);
+    for (unsigned int index = 0; index < valuesCount; ++index) {
+        int value;
+        packet >> value;
+        genericRequestResponse.data[index] = value;
+    }
+    
+    return packet;
+}
+
+/**
  * Serializes a NetworkGameState.
  */
 sf::Packet& operator <<(sf::Packet& packet, const NetworkGameState& networkGameState) {
