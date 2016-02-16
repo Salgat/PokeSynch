@@ -109,9 +109,11 @@ private:
 
     void TransferToOAM(uint16_t origin);
     void PopulateParty(const std::vector<Pokemon>& party, const std::array<uint8_t, 8>& partyData, std::array<uint8_t, 0x108+8>& partyArray);
+    bool IsNotBattleChanges(uint16_t address);
     
     bool overridePokemonParty;
     bool overrideEnemyParty;
+    bool ignoreEnemyBattleChanges;
     std::array<uint8_t, 0x108 + 8> wPartyMons;
     std::array<uint8_t, 0x108 + 8> wEnemyMons;
 };

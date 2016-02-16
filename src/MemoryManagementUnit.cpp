@@ -61,6 +61,7 @@ void MemoryManagementUnit::Initialize(Processor* cpu_, Input* input_, Display* d
 void MemoryManagementUnit::Reset() {
     overridePokemonParty = false;
     overrideEnemyParty = false;
+    ignoreEnemyBattleChanges = false;
     
     bios_mode = false;//true;
     bios = {0x31, 0xFE, 0xFF, 0xAF, 0x21, 0xFF, 0x9F, 0x32, 0xCB, 0x7C, 0x20, 0xFB, 0x21, 0x26, 0xFF, 0x0E, // 16/row (0-15)
@@ -334,6 +335,11 @@ uint8_t MemoryManagementUnit::ReadByte(uint16_t address) {
         case 0x5000:
         case 0x6000:
         case 0x7000:
+              if (address == 0x5719 and mbc.rom_offset / 0x4000 == 0xE) {
+                // If the AI is deciding a move, this means the battle has started
+                std::cout << "Disabling override for rom offset: " << mbc.rom_offset  << std::endl;
+                ignoreEnemyBattleChanges = false;
+            }
 			return cartridge_rom[static_cast<unsigned int>(address&0x3FFF) + mbc.rom_offset];
 
         // VRAM
@@ -485,6 +491,10 @@ uint16_t MemoryManagementUnit::ReadWord(uint16_t address) {
  */
 void MemoryManagementUnit::WriteByte(uint16_t address, uint8_t value) {
     if (ignoreMemoryWrites.count(address)) return;
+    
+    if (overrideEnemyParty and !ignoreEnemyBattleChanges and !IsNotBattleChanges(address) and address >= 0xd89c and address < 0xd9ac) {
+        wEnemyMons[address - 0xd89c] = value;
+    }
     
     switch(address & 0xF000) {
         // ROM and RAM configuration
@@ -726,6 +736,7 @@ void MemoryManagementUnit::SetPartyMonsters(const std::vector<Pokemon>& party, c
         PopulateParty(party, partyData, wPartyMons);
     } else {
         overrideEnemyParty = true;
+        ignoreEnemyBattleChanges = true;
         PopulateParty(party, partyData, wEnemyMons);
     }
 }
@@ -739,6 +750,7 @@ void MemoryManagementUnit::SetPartyMonsters(const std::array<uint8_t, 0x108+8>& 
         wPartyMons = party;
     } else {
         overrideEnemyParty = true;
+        ignoreEnemyBattleChanges = true;
         wEnemyMons = party;
     }
 }
@@ -751,6 +763,7 @@ void MemoryManagementUnit::ResetPartyMonsters(bool enemy) {
         overridePokemonParty = false;
     } else {
         overrideEnemyParty = false;
+        ignoreEnemyBattleChanges = false;
     }
 }
 
@@ -825,4 +838,31 @@ std::array<uint8_t, 0x108+8> MemoryManagementUnit::SavePartyMonstersFromMemory(b
     }
     
     return party;
+}
+
+/**
+ * Returns true if the address is not the enemy's battle stats such as PP, HP, speed, etc.
+ */
+bool MemoryManagementUnit::IsNotBattleChanges(uint16_t address) {
+    uint16_t offset = 0xd89c;
+    
+    for (unsigned int index = 0; index < 6; ++index) {
+        if (address == offset + 0x00 + index * 0x2C ||
+            address == offset + 0x03 + index * 0x2C ||
+            address == offset + 0x05 + index * 0x2C ||
+            address == offset + 0x06 + index * 0x2C ||
+            address == offset + 0x0E + index * 0x2C ||
+            address == offset + 0x0F + index * 0x2C ||
+            address == offset + 0x10 + index * 0x2C ||
+            address == offset + 0x1B + index * 0x2C ||
+            address == offset + 0x1C + index * 0x2C ||
+            address == offset + 0x21 + index * 0x2C ||
+            address == offset + 0x22 + index * 0x2C ||
+            address == offset + 0x23 + index * 0x2C) {
+            return true;
+            // address - offset % 0x2C
+        } 
+    }
+    
+    return false;
 }
