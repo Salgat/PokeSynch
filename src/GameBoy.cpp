@@ -38,14 +38,19 @@ void GameBoy::Reset() {
     
     synchronizedMap = false;
     initiateBattleFlag = false;
+    updateCounter = 0;
+    updateRate = 12;
 }
 
 // Todo: Frame calling v-blank 195-196x per frame??
 std::pair<sf::Image, bool> GameBoy::RenderFrame() {
     // First check for any updates on the network
-    NetworkGameState localGameState = CreateGameState();
-    auto hostGameState = network.Update(localGameState);
-    UpdateLocalGameState(hostGameState, network.isHost);
+    HostGameState hostGameState;
+    if (updateCounter++ % updateRate == 0) {
+        NetworkGameState localGameState = CreateGameState();
+        hostGameState = network.Update(localGameState);
+        UpdateLocalGameState(hostGameState, network.isHost);
+    }
     
     if (initiateBattleFlag) {
         InitiateBattle();

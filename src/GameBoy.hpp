@@ -79,6 +79,8 @@ public:
     sf::Image frame;
     bool initiateBattleFlag;
     bool synchronizedMap;
+    unsigned int updateCounter;
+    unsigned int updateRate;
 
     Processor cpu;
     MemoryManagementUnit mmu;

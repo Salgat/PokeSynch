@@ -475,7 +475,7 @@ void Display::DisplayPlayers(HostGameState hostGameState, int myUniqueId) {
         int deltaX = simulatedPlayerState.xPosition - xPosition;
         int deltaY = simulatedPlayerState.yPosition - yPosition;
         
-        if (std::abs(deltaX) > 3 || std::abs(deltaY) > 3) {
+        if (std::abs(deltaX) > 9 || std::abs(deltaY) > 9) {
             simulatedPlayerState.xPosition = xPosition;
             simulatedPlayerState.yPosition = yPosition;
         }
@@ -498,8 +498,8 @@ void Display::DisplayPlayers(HostGameState hostGameState, int myUniqueId) {
         }
         
         // Draw player to frame only if he is visible
-        if (std::abs(xPosition - simulatedPlayerState.xPosition) > 8 ||
-            std::abs(yPosition - simulatedPlayerState.yPosition) > 8) continue;
+        if (std::abs(xPosition - simulatedPlayerState.xPosition) > 9 ||
+            std::abs(yPosition - simulatedPlayerState.yPosition) > 9) continue;
             
         // Player is on screen, get his frame index and draw that frame
         // TODO: Determine if player is on bike, swimming, or just walking. If on the bike, need to adjust for speed
@@ -620,6 +620,10 @@ void Display::DrawSpriteToImage(sf::Image spriteImage, int frameNumber, int pixe
     int yOffset = 16*frameNumber;
     for (int x = 0; x < 16; ++x) {
        for (int y = 0; y < 16; ++y) {
+           // Skip pixels outside view range
+           if (x+pixelPositionX >= 160 || x+pixelPositionX < 0 ||
+               y+pixelPositionY >= 144 || y+pixelPositionY < 0) continue;
+           
            // Draw the pixels to the image
            sf::Color pixel;
            if (!flipHorizontal) {
