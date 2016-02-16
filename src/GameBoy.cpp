@@ -332,6 +332,18 @@ void GameBoy::DrawDialogueWithPlayer() {
             // Initiating battle with remote player
             display.DrawWindowWithText("Requesting", 0);
             display.DrawWindowWithText("trade...", 1);
+        } else if (input.dialogueWithPlayer == PlayerDialogue::REQUESTED_BATTLE) {
+            // Response to battle request
+            display.DrawWindowWithText("Other player wants to battle.", 0);
+            bool firstSelected = input.currentSelection == 0 ? true : false;
+            display.DrawOptionsWindowWithText("BATTLE", 0, firstSelected);
+            display.DrawOptionsWindowWithText("CANCEL", 1, !firstSelected);
+        } else if (input.dialogueWithPlayer == PlayerDialogue::REQUESTED_TRADE) {
+            // Response to battle request
+            display.DrawWindowWithText("Other player wants to trade.", 0);
+            bool firstSelected = input.currentSelection == 0 ? true : false;
+            display.DrawOptionsWindowWithText("TRADE", 0, firstSelected);
+            display.DrawOptionsWindowWithText("CANCEL", 1, !firstSelected);
         }
     }
 }

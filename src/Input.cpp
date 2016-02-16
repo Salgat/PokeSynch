@@ -220,6 +220,24 @@ bool Input::PollEvents() {
                             // Initiate trade with player
                             dialogueWithPlayer = PlayerDialogue::SELECTED_TRADE;
                         }
+                    } else if (dialogueWithPlayer == PlayerDialogue::REQUESTED_BATTLE) {
+                        // Respond to battle request
+                        if (currentSelection == 0) {
+                            // Agree to battle
+                            dialogueWithPlayer = PlayerDialogue::SELECTED_BATTLE_RESPONSE;
+                        } else if (currentSelection == 1) {
+                            // Refuse battle
+                            dialogueWithPlayer = PlayerDialogue::REFUSED_BATTLE_RESPONSE;
+                        }
+                    } else if (dialogueWithPlayer == PlayerDialogue::REQUESTED_TRADE) {    
+                        // Respond to trade request
+                        if (currentSelection == 0) {
+                            // Agree to trade
+                            dialogueWithPlayer = PlayerDialogue::SELECTED_TRADE_RESPONSE;
+                        } else if (currentSelection == 1) {
+                            // Refuse trade
+                            dialogueWithPlayer = PlayerDialogue::REFUSED_TRADE_RESPONSE;
+                        }
                     } else if (tempTalkingWithPlayer >= 0 && dialogueWithPlayer == PlayerDialogue::NOT_IN_DIALOGUE) {
                         // Engage in dialogue with player
                         talkingWithPlayer = tempTalkingWithPlayer;
@@ -237,7 +255,9 @@ bool Input::PollEvents() {
                     
                 // Change selection (Up)
                 case sf::Keyboard::Up:
-                    if (dialogueWithPlayer == PlayerDialogue::SELECT_BATTLE_OR_TRADE) {
+                    if (dialogueWithPlayer == PlayerDialogue::SELECT_BATTLE_OR_TRADE ||
+                        dialogueWithPlayer == PlayerDialogue::REQUESTED_BATTLE ||
+                        dialogueWithPlayer == PlayerDialogue::REQUESTED_TRADE) {
                         if (currentSelection == 1) {
                             currentSelection = 0;
                         }
@@ -246,7 +266,9 @@ bool Input::PollEvents() {
                     
                 // Change selection (Down)
                 case sf::Keyboard::Down:
-                    if (dialogueWithPlayer == PlayerDialogue::SELECT_BATTLE_OR_TRADE) {
+                    if (dialogueWithPlayer == PlayerDialogue::SELECT_BATTLE_OR_TRADE ||
+                        dialogueWithPlayer == PlayerDialogue::REQUESTED_BATTLE ||
+                        dialogueWithPlayer == PlayerDialogue::REQUESTED_TRADE) {
                         if (currentSelection == 0) {
                             currentSelection = 1;
                         }
