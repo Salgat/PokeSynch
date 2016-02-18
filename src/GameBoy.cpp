@@ -13,8 +13,8 @@ GameBoy::GameBoy(sf::RenderWindow& window, std::string name, unsigned short port
     mmu.Initialize(&cpu, &input, &display, &timer);
     display.Initialize(&cpu, &mmu);
     timer.Initialize(&cpu, &mmu, &display);
-	input.Initialize(&mmu, &display, &timer, &cpu, this, &window);
-    network.Initialize(&mmu, &display, &timer, &cpu, this, &window);
+	input.Initialize(&mmu, &display, &timer, &cpu, this, &network, &window);
+    network.Initialize(&mmu, &display, &timer, &cpu, &input, this, &window);
 
 	Reset();
     
@@ -91,11 +91,6 @@ std::pair<sf::Image, bool> GameBoy::RenderFrame() {
 	if (!v_blank) {
 		display.RenderFrame();
         display.DisplayPlayers(hostGameState, network.uniqueId);
-        /*display.DrawWindowWithText("PokeSynch Testing!", 0);
-        display.DrawWindowWithText("Line 2 testing.", 1);
-        
-        display.DrawOptionsWindowWithText("BATTLE", 0, true);
-        display.DrawOptionsWindowWithText("TRADE", 1, false);*/
         DrawDialogueWithPlayer();
 	}
 	
@@ -339,13 +334,15 @@ void GameBoy::DrawDialogueWithPlayer() {
             display.DrawWindowWithText("trade...", 1);
         } else if (input.dialogueWithPlayer == PlayerDialogue::REQUESTED_BATTLE) {
             // Response to battle request
-            display.DrawWindowWithText("Other player wants to battle.", 0);
+            display.DrawWindowWithText("Other player wants", 0);
+            display.DrawWindowWithText("to battle.", 1);
             bool firstSelected = input.currentSelection == 0 ? true : false;
             display.DrawOptionsWindowWithText("BATTLE", 0, firstSelected);
             display.DrawOptionsWindowWithText("CANCEL", 1, !firstSelected);
         } else if (input.dialogueWithPlayer == PlayerDialogue::REQUESTED_TRADE) {
             // Response to battle request
-            display.DrawWindowWithText("Other player wants to trade.", 0);
+            display.DrawWindowWithText("Other player wants", 0);
+            display.DrawWindowWithText("to trade.", 1);
             bool firstSelected = input.currentSelection == 0 ? true : false;
             display.DrawOptionsWindowWithText("TRADE", 0, firstSelected);
             display.DrawOptionsWindowWithText("CANCEL", 1, !firstSelected);

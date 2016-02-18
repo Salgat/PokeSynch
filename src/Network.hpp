@@ -15,12 +15,13 @@
 #include <cstdlib>
 #include <iostream>
 #include <ctime>
-#include <queue>
+#include <stack>
 
 class MemoryManagementUnit;
 class Display;
 class Timer;
 class Processor;
+class Input;
 class GameBoy;
 
 /**
@@ -88,6 +89,7 @@ enum class PacketType {
     CONNECT_RESPONSE = 2,
     NETWORK_GAME_STATE = 3,
     HOST_GAME_STATE = 4,
+    GENERIC_REQUEST = 5,
     NONE
 };
 
@@ -115,6 +117,7 @@ struct ConnectRequest {
  */
 struct ConnectResponse {
     int uniqueId; // Assigned from server
+    int serverUniqueId;
 };
 
 
@@ -144,7 +147,7 @@ public:
     Network();
 
     void Initialize(MemoryManagementUnit* mmu_, Display* display_, 
-				    Timer* timer_, Processor* cpu_,  GameBoy* gameboy_, sf::RenderWindow* window_);
+				    Timer* timer_, Processor* cpu_, Input* input_, GameBoy* gameboy_, sf::RenderWindow* window_);
                     
     bool Host(unsigned short port, const std::string& name);
     bool Connect(sf::IpAddress address, unsigned short hostPort, unsigned short port, std::string name);
@@ -153,13 +156,18 @@ public:
     NetworkMode networkMode;
     bool isHost;
     int uniqueId;
-    std::queue<GenericRequestResponse> pendingRequests;
+    std::vector<GenericRequestResponse> pendingRequests; // Treat this as a iterable queue
+    
+    void CreateBattleRequest(int targetUniqueId);
+    void AcceptBattleRequest(int targetUniqueId);
+    void RefuseBattleRequest(int targetUniqueId);
     
 private:
     MemoryManagementUnit* mmu;
 	Display* display;
 	Timer* timer;
 	Processor* cpu;
+    Input* input;
 	GameBoy* gameboy;
     sf::RenderWindow* window;
     
@@ -177,6 +185,11 @@ private:
     
     HostGameState ClientUpdate(const NetworkGameState& localGameState);
     void HandleConnectResponse(sf::Packet gameStatePacket, sf::IpAddress sender, unsigned short port);
+    void HandlePendingRequests();
+    
+    void HandleGenericRequestPacket(sf::Packet& packet, sf::IpAddress sender, unsigned short port);
+    void RemovePendingRequest(ResponseType responseType, int remotePlayerId);
+    int FindClientUniqueId(sf::IpAddress sender, unsigned short port);
 };
 
 #endif //GAMEBOYEMULATOR_NETWORK_HPP

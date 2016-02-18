@@ -10,6 +10,7 @@
 #include "Processor.hpp"
 #include "Timer.hpp"
 #include "GameBoy.hpp"
+#include "Network.hpp"
 
 #include "serq.hpp"
 
@@ -19,13 +20,14 @@ Input::Input()
 }
 
 void Input::Initialize(MemoryManagementUnit* mmu_, Display* display_, 
-				       Timer* timer_, Processor* cpu_, GameBoy* gameboy_, sf::RenderWindow* window_) {
+				       Timer* timer_, Processor* cpu_, GameBoy* gameboy_, Network* network_, sf::RenderWindow* window_) {
     mmu = mmu_;
 	display = display_;
 	timer = timer_;
 	cpu = cpu_;
     window = window_;
     gameboy = gameboy_;
+    network = network_;
 }
 
 /**
@@ -216,6 +218,7 @@ bool Input::PollEvents() {
                         if (currentSelection == 0) {
                             // Initiate battle with player
                             dialogueWithPlayer = PlayerDialogue::SELECTED_BATTLE;
+                            network->CreateBattleRequest(talkingWithPlayer);
                         } else if (currentSelection == 1) {
                             // Initiate trade with player
                             dialogueWithPlayer = PlayerDialogue::SELECTED_TRADE;
@@ -225,9 +228,11 @@ bool Input::PollEvents() {
                         if (currentSelection == 0) {
                             // Agree to battle
                             dialogueWithPlayer = PlayerDialogue::SELECTED_BATTLE_RESPONSE;
+                            network->AcceptBattleRequest(talkingWithPlayer);
                         } else if (currentSelection == 1) {
                             // Refuse battle
                             dialogueWithPlayer = PlayerDialogue::REFUSED_BATTLE_RESPONSE;
+                            network->RefuseBattleRequest(talkingWithPlayer);
                         }
                     } else if (dialogueWithPlayer == PlayerDialogue::REQUESTED_TRADE) {    
                         // Respond to trade request

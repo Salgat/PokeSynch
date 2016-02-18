@@ -48,6 +48,7 @@ class Display;
 class Timer;
 class Processor;
 class GameBoy;
+class Network;
 
 /**
  * Handles input for game (joypad).
@@ -57,7 +58,7 @@ public:
     Input();
 
     void Initialize(MemoryManagementUnit* mmu_, Display* display_, 
-				    Timer* timer_, Processor* cpu_,  GameBoy* gameboy_, sf::RenderWindow* window_);
+				    Timer* timer_, Processor* cpu_,  GameBoy* gameboy_, Network* network_, sf::RenderWindow* window_);
     void Reset();
     uint8_t ReadByte();
     void WriteByte(uint8_t value);
@@ -83,6 +84,7 @@ private:
 	Timer* timer;
 	Processor* cpu;
 	GameBoy* gameboy;
+    Network* network;
     sf::RenderWindow* window;
 
     std::array<uint8_t, 2> rows;

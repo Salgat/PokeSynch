@@ -4,6 +4,7 @@
 #include "Display.hpp"
 #include "Processor.hpp"
 #include "Timer.hpp"
+#include "Input.hpp"
 #include "GameBoy.hpp"
 
 void TestPacket(HostGameState hostGameState);
@@ -14,7 +15,7 @@ void TestPacket(HostGameState hostGameState);
  * Serializes a GenericRequestResponse.
  */
 sf::Packet& operator <<(sf::Packet& packet, const GenericRequestResponse& genericRequestResponse) {
-    packet << genericRequestResponse;
+    packet << static_cast<int>(genericRequestResponse.responseType);
     
     packet << static_cast<unsigned int>(genericRequestResponse.data.size());
     for (auto value : genericRequestResponse.data) {
@@ -28,7 +29,9 @@ sf::Packet& operator <<(sf::Packet& packet, const GenericRequestResponse& generi
  * Deserializes a GenericRequestResponse.
  */
 sf::Packet& operator >>(sf::Packet& packet, GenericRequestResponse& genericRequestResponse) {
-    packet >> genericRequestResponse;
+    int responseType;
+    packet >> responseType;
+    genericRequestResponse.responseType = static_cast<ResponseType>(responseType);
     
     unsigned int valuesCount;
     packet >> valuesCount;
@@ -172,7 +175,7 @@ sf::Packet& operator >>(sf::Packet& packet, ConnectRequest& connectRequest) {
  * Serializes a Connect Response.
  */
 sf::Packet& operator <<(sf::Packet& packet, const ConnectResponse& connectResponse) {
-    packet << connectResponse.uniqueId;
+    packet << connectResponse.uniqueId << connectResponse.serverUniqueId;;
     return packet;
 }
 
@@ -180,7 +183,7 @@ sf::Packet& operator <<(sf::Packet& packet, const ConnectResponse& connectRespon
  * Deserializes a Connect Response.
  */
 sf::Packet& operator >>(sf::Packet& packet, ConnectResponse& connectResponse) {
-    packet >> connectResponse.uniqueId;
+    packet >> connectResponse.uniqueId >> connectResponse.serverUniqueId;
     return packet;
 }
 
@@ -189,11 +192,12 @@ Network::Network() {
 }
 
 void Network::Initialize(MemoryManagementUnit* mmu_, Display* display_, 
-				       Timer* timer_, Processor* cpu_, GameBoy* gameboy_, sf::RenderWindow* window_) {
+				       Timer* timer_, Processor* cpu_, Input* input_, GameBoy* gameboy_, sf::RenderWindow* window_) {
     mmu = mmu_;
 	display = display_;
 	timer = timer_;
 	cpu = cpu_;
+    input = input_;
     window = window_;
 }
 
@@ -287,10 +291,13 @@ bool Network::Connect(sf::IpAddress address, unsigned short hostPort, unsigned s
     socket.setBlocking(false);
     
     // Store host's NetworkId
+    int serverUniqueId;
+    connectResponsePacket >> serverUniqueId;
     NetworkId hostNetworkId;
     hostNetworkId.address = address;
     hostNetworkId.port = hostPort;
     clients[0] = hostNetworkId;
+    clients[serverUniqueId] = hostNetworkId;
     
     return true;
 }
@@ -345,7 +352,9 @@ HostGameState Network::HostUpdate(const NetworkGameState& localGameState) {
             } else if (packetType == static_cast<int>(PacketType::NETWORK_GAME_STATE)) {
                 auto gameState = HandleGameStateResponse(packet, sender, port);
                 clientGameStates[gameState.uniqueId] = gameState;
-                //std::cout << "Received game state from client: " << gameState.uniqueId << std::endl;
+            } else if (packetType == static_cast<int>(PacketType::GENERIC_REQUEST)) {
+                std::cout << "Handling generic request packet" << std::endl;
+                HandleGenericRequestPacket(packet, sender, port);
             }
         } else if (result == sf::Socket::Disconnected) {
             // TODO Reconnect
@@ -374,6 +383,9 @@ HostGameState Network::HostUpdate(const NetworkGameState& localGameState) {
         ++index;
     }
     
+    // Process pending requests
+    HandlePendingRequests();
+    
     return hostGameState;
 }
 
@@ -386,6 +398,7 @@ void Network::HandleConnectRequest(sf::Packet requestPacket, sf::IpAddress sende
     ConnectResponse response;
     std::srand(std::time(0)); // use current time as seed for random generator
     response.uniqueId = std::rand();
+    response.serverUniqueId = uniqueId;
     
     // Create client Id and add to client list
     NetworkId clientId;
@@ -434,6 +447,8 @@ HostGameState Network::ClientUpdate(const NetworkGameState& localGameState) {
                 HandleConnectResponse(packet, sender, port);
             } else if (packetType == static_cast<int>(PacketType::HOST_GAME_STATE)) {
                 packet >> hostGameState;
+            } else if (packetType == static_cast<int>(PacketType::GENERIC_REQUEST)) {
+                HandleGenericRequestPacket(packet, sender, port);
             }
         } else if (result == sf::Socket::Disconnected) {
             // TODO
@@ -442,13 +457,32 @@ HostGameState Network::ClientUpdate(const NetworkGameState& localGameState) {
         }
     }
     
-    // TODO: Send the game state to the host
     sf::Packet localGameStatePacket;
     localGameStatePacket << static_cast<int>(PacketType::NETWORK_GAME_STATE) << localGameState;
     const auto& networkId = clients[0];
     socket.send(localGameStatePacket, networkId.address, networkId.port);
     
+    // Process pending requests
+    HandlePendingRequests();
+    
     return hostGameState;
+}
+
+/**
+ * Sends out all pending requests.
+ */
+void Network::HandlePendingRequests() {
+    std::stack<std::size_t> requestsToRemove;
+    for (std::size_t index = 0; index < pendingRequests.size(); ++index) {
+        auto& pendingRequest = pendingRequests[index];
+        if (pendingRequest.responseType == ResponseType::REQUEST_BATTLE ||
+            pendingRequest.responseType == ResponseType::REFUSE_BATTLE_REQUEST) {
+            sf::Packet battleRequestPacket;
+            battleRequestPacket << static_cast<int>(PacketType::GENERIC_REQUEST) << pendingRequest;
+            const auto& networkId = clients[pendingRequest.data[0]];
+            socket.send(battleRequestPacket, networkId.address, networkId.port);
+        }
+    }
 }
 
 /**
@@ -458,4 +492,98 @@ void Network::HandleConnectResponse(sf::Packet gameStatePacket, sf::IpAddress se
     // TODO: Normally this should only be handled during the connect phase, but need to account for this
     // on a re-sent UDP packet for example.
     throw;
+}
+
+/**
+ * Creates a pending request for battle.
+ */
+void Network::CreateBattleRequest(int targetUniqueId) {
+    GenericRequestResponse battleRequest;
+    battleRequest.responseType = ResponseType::REQUEST_BATTLE;
+    battleRequest.data.push_back(targetUniqueId);
+    
+    pendingRequests.push_back(battleRequest);
+}
+
+/**
+ * Creates a pending request accepting a battle request.
+ */
+void Network::AcceptBattleRequest(int targetUniqueId) {
+    GenericRequestResponse acceptBattleRequest;
+    acceptBattleRequest.responseType = ResponseType::ACCEPT_BATTLE_REQUEST;
+    acceptBattleRequest.data.push_back(targetUniqueId);
+    
+    pendingRequests.push_back(acceptBattleRequest);
+}
+
+/**
+ * Creates a pending request refusing a battle request.
+ */
+void Network::RefuseBattleRequest(int targetUniqueId) {
+    std::cout << "Sending refusal to battle to: " << targetUniqueId << std::endl;
+    GenericRequestResponse refuseBattleRequest;
+    refuseBattleRequest.responseType = ResponseType::REFUSE_BATTLE_REQUEST;
+    refuseBattleRequest.data.push_back(targetUniqueId);
+    
+    pendingRequests.push_back(refuseBattleRequest);
+}
+
+/**
+ * Removes any pending requests that match the specified pending request.
+ */
+void Network::RemovePendingRequest(ResponseType responseType, int remotePlayerId) {
+    std::stack<std::size_t> indexesToRemove;
+    for (std::size_t index = 0; index < pendingRequests.size(); ++index) {
+        if (pendingRequests[index].responseType == responseType and pendingRequests[index].data[0] == remotePlayerId) {
+            indexesToRemove.push(index);
+        }
+    }
+    
+    // Removes indexes starting at the back of the vector to not affect other indexes
+    while (!indexesToRemove.empty()) {
+        auto index = indexesToRemove.top();
+        indexesToRemove.pop();
+        pendingRequests.erase(pendingRequests.begin() + index);
+    }
+}
+
+/**
+ * Process any incoming GENERIC_REQUEST packets.
+ */
+void Network::HandleGenericRequestPacket(sf::Packet& packet, sf::IpAddress sender, unsigned short port) {
+    GenericRequestResponse genericRequestResponse;
+    packet >> genericRequestResponse;
+    if (input->dialogueWithPlayer == PlayerDialogue::NOT_IN_DIALOGUE) {
+        // Player is not in dialogue with anyone
+        if (genericRequestResponse.responseType == ResponseType::REQUEST_BATTLE) {
+            // Remote player has requested battle; open dialogue requesting battle
+            std::cout << "Remote Player has requested battle" << std::endl;
+            input->dialogueWithPlayer = PlayerDialogue::REQUESTED_BATTLE;
+            input->talkingWithPlayer = FindClientUniqueId(sender, port); // TODO: Handled unknown client
+        } else {
+            std::cout << "Unknown packet: " << static_cast<int>(genericRequestResponse.responseType) << std::endl;
+        }
+    } else if (genericRequestResponse.responseType == ResponseType::REFUSE_BATTLE_REQUEST) {
+        // Battle Refused by remote player
+        std::cout << "Player refused to battle" << std::endl;
+        input->dialogueWithPlayer = PlayerDialogue::NOT_IN_DIALOGUE;
+        
+        // Remove battle request from pending requests
+        int remotePlayerId = FindClientUniqueId(sender, port);
+        RemovePendingRequest(ResponseType::REQUEST_BATTLE, remotePlayerId);
+    }
+}
+
+/**
+ * Returns the uniqueId for the given IpAddress and Port. -1 is returned if none is found.
+ */
+int Network::FindClientUniqueId(sf::IpAddress sender, unsigned short port) {
+    for (const auto& client : clients) {
+        const auto& networkId = client.second;
+        if (networkId.address == sender and networkId.port == port) {
+            return client.first;
+        }
+    }
+    
+    return -1;
 }
