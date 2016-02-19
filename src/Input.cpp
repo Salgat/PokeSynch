@@ -211,8 +211,8 @@ bool Input::PollEvents() {
                     break;
                     
                 // Start dialogue with player
-                // TODO: Verify not in battle first
                 case sf::Keyboard::X:
+                    if (mmu->ReadByte(0xd057) == 2) break; // Skip if in a battle
                     tempTalkingWithPlayer = display->FacingOtherPlayer();
                     if (dialogueWithPlayer == PlayerDialogue::SELECT_BATTLE_OR_TRADE) {
                         if (currentSelection == 0) {
@@ -227,11 +227,13 @@ bool Input::PollEvents() {
                         // Respond to battle request
                         if (currentSelection == 0) {
                             // Agree to battle
-                            dialogueWithPlayer = PlayerDialogue::SELECTED_BATTLE_RESPONSE;
+                            //dialogueWithPlayer = PlayerDialogue::SELECTED_BATTLE_RESPONSE;
+                            dialogueWithPlayer = PlayerDialogue::NOT_IN_DIALOGUE;
                             network->AcceptBattleRequest(talkingWithPlayer);
                         } else if (currentSelection == 1) {
                             // Refuse battle
-                            dialogueWithPlayer = PlayerDialogue::REFUSED_BATTLE_RESPONSE;
+                            //dialogueWithPlayer = PlayerDialogue::REFUSED_BATTLE_RESPONSE;
+                            dialogueWithPlayer = PlayerDialogue::NOT_IN_DIALOGUE;
                             network->RefuseBattleRequest(talkingWithPlayer);
                         }
                     } else if (dialogueWithPlayer == PlayerDialogue::REQUESTED_TRADE) {    

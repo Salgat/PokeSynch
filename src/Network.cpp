@@ -199,6 +199,7 @@ void Network::Initialize(MemoryManagementUnit* mmu_, Display* display_,
 	cpu = cpu_;
     input = input_;
     window = window_;
+    gameboy = gameboy_;
 }
 
 /**
@@ -323,8 +324,9 @@ HostGameState Network::Update(NetworkGameState& localGameState) {
     } else if (networkMode == NetworkMode::CONNECTED_AS_CLIENT) {
         auto host = ClientUpdate(localGameState);
         
+        // Update clients
         for (auto& gs : host.playerGameStates) {
-            //std::cout << "Unique Id: " << gs.uniqueId << std::endl;
+            
         }
         
         return host;
@@ -447,6 +449,10 @@ HostGameState Network::ClientUpdate(const NetworkGameState& localGameState) {
                 HandleConnectResponse(packet, sender, port);
             } else if (packetType == static_cast<int>(PacketType::HOST_GAME_STATE)) {
                 packet >> hostGameState;
+                // Update all client game states
+                for (const auto& gameState : hostGameState.playerGameStates) {
+                    clientGameStates[gameState.uniqueId] = gameState;
+                }
             } else if (packetType == static_cast<int>(PacketType::GENERIC_REQUEST)) {
                 HandleGenericRequestPacket(packet, sender, port);
             }
@@ -476,7 +482,8 @@ void Network::HandlePendingRequests() {
     for (std::size_t index = 0; index < pendingRequests.size(); ++index) {
         auto& pendingRequest = pendingRequests[index];
         if (pendingRequest.responseType == ResponseType::REQUEST_BATTLE ||
-            pendingRequest.responseType == ResponseType::REFUSE_BATTLE_REQUEST) {
+            pendingRequest.responseType == ResponseType::REFUSE_BATTLE_REQUEST ||
+            pendingRequest.responseType == ResponseType::ACCEPT_BATTLE_REQUEST) {
             sf::Packet battleRequestPacket;
             battleRequestPacket << static_cast<int>(PacketType::GENERIC_REQUEST) << pendingRequest;
             const auto& networkId = clients[pendingRequest.data[0]];
@@ -509,11 +516,16 @@ void Network::CreateBattleRequest(int targetUniqueId) {
  * Creates a pending request accepting a battle request.
  */
 void Network::AcceptBattleRequest(int targetUniqueId) {
+    std::cout << "Sending accepting battle to: " << targetUniqueId << std::endl;
     GenericRequestResponse acceptBattleRequest;
     acceptBattleRequest.responseType = ResponseType::ACCEPT_BATTLE_REQUEST;
     acceptBattleRequest.data.push_back(targetUniqueId);
     
     pendingRequests.push_back(acceptBattleRequest);
+    
+    // Start the battle in the meantime
+    mmu->SetPartyMonsters(clientGameStates[targetUniqueId].partyMonsters, true);
+    gameboy->InitiateBattle();
 }
 
 /**
@@ -553,16 +565,11 @@ void Network::RemovePendingRequest(ResponseType responseType, int remotePlayerId
 void Network::HandleGenericRequestPacket(sf::Packet& packet, sf::IpAddress sender, unsigned short port) {
     GenericRequestResponse genericRequestResponse;
     packet >> genericRequestResponse;
-    if (input->dialogueWithPlayer == PlayerDialogue::NOT_IN_DIALOGUE) {
-        // Player is not in dialogue with anyone
-        if (genericRequestResponse.responseType == ResponseType::REQUEST_BATTLE) {
-            // Remote player has requested battle; open dialogue requesting battle
-            std::cout << "Remote Player has requested battle" << std::endl;
-            input->dialogueWithPlayer = PlayerDialogue::REQUESTED_BATTLE;
-            input->talkingWithPlayer = FindClientUniqueId(sender, port); // TODO: Handled unknown client
-        } else {
-            std::cout << "Unknown packet: " << static_cast<int>(genericRequestResponse.responseType) << std::endl;
-        }
+    if (genericRequestResponse.responseType == ResponseType::REQUEST_BATTLE) {
+        // Remote player has requested battle; open dialogue requesting battle
+        std::cout << "Remote Player has requested battle" << std::endl;
+        input->dialogueWithPlayer = PlayerDialogue::REQUESTED_BATTLE;
+        input->talkingWithPlayer = FindClientUniqueId(sender, port); // TODO: Handled unknown client
     } else if (genericRequestResponse.responseType == ResponseType::REFUSE_BATTLE_REQUEST) {
         // Battle Refused by remote player
         std::cout << "Player refused to battle" << std::endl;
@@ -570,6 +577,17 @@ void Network::HandleGenericRequestPacket(sf::Packet& packet, sf::IpAddress sende
         
         // Remove battle request from pending requests
         int remotePlayerId = FindClientUniqueId(sender, port);
+        RemovePendingRequest(ResponseType::REQUEST_BATTLE, remotePlayerId);
+    } else if (genericRequestResponse.responseType == ResponseType::ACCEPT_BATTLE_REQUEST) {
+        // Battle Accepted by remote player, initiate battle
+        std::cout << "Player accepted battle" << std::endl;
+        input->dialogueWithPlayer = PlayerDialogue::NOT_IN_DIALOGUE;
+        
+        int remotePlayerId = FindClientUniqueId(sender, port);
+        mmu->SetPartyMonsters(clientGameStates[remotePlayerId].partyMonsters, true);
+        gameboy->InitiateBattle();
+        
+        // Remove request for battle
         RemovePendingRequest(ResponseType::REQUEST_BATTLE, remotePlayerId);
     }
 }

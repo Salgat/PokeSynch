@@ -90,8 +90,10 @@ std::pair<sf::Image, bool> GameBoy::RenderFrame() {
 	
 	if (!v_blank) {
 		display.RenderFrame();
-        display.DisplayPlayers(hostGameState, network.uniqueId);
-        DrawDialogueWithPlayer();
+        if (mmu.ReadByte(0xd057) != 2) {
+            display.DisplayPlayers(hostGameState, network.uniqueId);
+            DrawDialogueWithPlayer();
+        }
 	}
 	
 	return std::make_pair(display.frame, running);
@@ -288,8 +290,8 @@ bool GameBoy::SpriteCollisionInFront(const HostGameState& hostGameState) {
  */
 void GameBoy::InitiateBattle() {
     // Set my first pokemon to level 94 and set the appropriate experience
-    mmu.WriteByte(0xd16b + 25 + 8, 94);
-    mmu.WriteByte(0xd16b + 14 + 0, 0x08);
+    /*mmu.WriteByte(0xd16b + 25 + 8, 94);
+    mmu.WriteByte(0xd16b + 14 + 0, 0x08);*/
     
     // wCurOpponent is found at TrainerDataPointers where YoungsterData (the first) is at 201
     // Use https://github.com/pret/pokered/blob/351146024bdd386c328af0f2abdb04e728e4c133/constants/trainer_constants.asm
