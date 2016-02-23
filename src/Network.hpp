@@ -160,6 +160,7 @@ public:
     std::vector<GenericRequestResponse> pendingRequests; // Treat this as a iterable queue
     bool inBattle;
     bool moveSent;
+    int battleTurn;
     
     void CreateBattleRequest(int targetUniqueId);
     void AcceptBattleRequest(int targetUniqueId);
