@@ -74,6 +74,8 @@ public:
     void Reset();
     std::pair<sf::Image, bool> RenderFrame();
     void LoadGame(std::string rom_name);
+    
+    void SelectRemotePlayerMove(int move);
 
 //private:
     sf::Image frame;
@@ -98,6 +100,7 @@ public:
     void InitiateBattle();
     void DebugPrint();
     void DrawDialogueWithPlayer();
+    void DrawWaitingForEnemyMove();
 };
 
 #endif //GAMEBOYEMULATOR_GAMEBOY_HPP

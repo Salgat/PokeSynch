@@ -128,6 +128,7 @@ enum class ResponseType {
     ACCEPT_TRADE_REQUEST,
     REQUEST_BATTLE,
     REQUEST_TRADE,
+    MOVE_CHOSEN,
     NONE
 };
 
@@ -157,10 +158,13 @@ public:
     bool isHost;
     int uniqueId;
     std::vector<GenericRequestResponse> pendingRequests; // Treat this as a iterable queue
+    bool inBattle;
+    bool moveSent;
     
     void CreateBattleRequest(int targetUniqueId);
     void AcceptBattleRequest(int targetUniqueId);
     void RefuseBattleRequest(int targetUniqueId);
+    void SendPlayerMove(int targetUniqueId, int move);
     
 private:
     MemoryManagementUnit* mmu;

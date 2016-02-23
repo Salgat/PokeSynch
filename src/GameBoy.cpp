@@ -86,13 +86,21 @@ std::pair<sf::Image, bool> GameBoy::RenderFrame() {
 		}
 		
 		timer.Increment();
-	} while(cpu.clock < cpu.frame_clock);
+	} while(cpu.clock < cpu.frame_clock and !(network.inBattle and mmu.reachedSelectEnemyMove));
 	
 	if (!v_blank) {
 		display.RenderFrame();
         if (mmu.ReadByte(0xd057) != 2) {
+            // If not in battle, do usual display of players and dialogue
             display.DisplayPlayers(hostGameState, network.uniqueId);
             DrawDialogueWithPlayer();
+        } else if (network.inBattle) {
+            // Display battle dialogue
+            if (mmu.reachedSelectEnemyMove) {
+                // TODO: Add a timeout for this (in case remote player disconnects)
+                DrawWaitingForEnemyMove();
+                network.SendPlayerMove(input.talkingWithPlayer, static_cast<int>(mmu.ReadByte(0xccdc))); // Send wPlayerSelectedMove to remote player
+            }
         }
 	}
 	
@@ -350,4 +358,21 @@ void GameBoy::DrawDialogueWithPlayer() {
             display.DrawOptionsWindowWithText("CANCEL", 1, !firstSelected);
         }
     }
+}
+
+/**
+ * Draws a notification in the dialogue stating that we are waiting on the remote player to make a move.
+ */
+void GameBoy::DrawWaitingForEnemyMove() {
+    display.DrawWindowWithText("Waiting for other", 0);
+    display.DrawWindowWithText("player's move.", 1);
+}
+
+/**
+ * Overrides wEnemySelectedMove and resumes battle.
+ */
+void GameBoy::SelectRemotePlayerMove(int move) {
+    mmu.reachedSelectEnemyMove = false;
+    mmu.overrideEnemyMove = true;
+    mmu.enemyMove = static_cast<uint8_t>(move);
 }

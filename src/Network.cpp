@@ -200,6 +200,9 @@ void Network::Initialize(MemoryManagementUnit* mmu_, Display* display_,
     input = input_;
     window = window_;
     gameboy = gameboy_;
+    
+    inBattle = false;
+    moveSent = false;
 }
 
 /**
@@ -483,11 +486,12 @@ void Network::HandlePendingRequests() {
         auto& pendingRequest = pendingRequests[index];
         if (pendingRequest.responseType == ResponseType::REQUEST_BATTLE ||
             pendingRequest.responseType == ResponseType::REFUSE_BATTLE_REQUEST ||
-            pendingRequest.responseType == ResponseType::ACCEPT_BATTLE_REQUEST) {
-            sf::Packet battleRequestPacket;
-            battleRequestPacket << static_cast<int>(PacketType::GENERIC_REQUEST) << pendingRequest;
+            pendingRequest.responseType == ResponseType::ACCEPT_BATTLE_REQUEST ||
+            pendingRequest.responseType == ResponseType::MOVE_CHOSEN) {
+            sf::Packet requestPacket;
+            requestPacket << static_cast<int>(PacketType::GENERIC_REQUEST) << pendingRequest;
             const auto& networkId = clients[pendingRequest.data[0]];
-            socket.send(battleRequestPacket, networkId.address, networkId.port);
+            socket.send(requestPacket, networkId.address, networkId.port);
         }
     }
 }
@@ -526,6 +530,7 @@ void Network::AcceptBattleRequest(int targetUniqueId) {
     // Start the battle in the meantime
     mmu->SetPartyMonsters(clientGameStates[targetUniqueId].partyMonsters, true);
     gameboy->InitiateBattle();
+    inBattle = true;
 }
 
 /**
@@ -586,9 +591,19 @@ void Network::HandleGenericRequestPacket(sf::Packet& packet, sf::IpAddress sende
         int remotePlayerId = FindClientUniqueId(sender, port);
         mmu->SetPartyMonsters(clientGameStates[remotePlayerId].partyMonsters, true);
         gameboy->InitiateBattle();
+        inBattle = true;
         
         // Remove request for battle
         RemovePendingRequest(ResponseType::REQUEST_BATTLE, remotePlayerId);
+    } else if (inBattle and moveSent and genericRequestResponse.responseType == ResponseType::MOVE_CHOSEN) {
+        // Receiving move by remote player
+        std::cout << "Player sent battle move" << std::endl;
+        moveSent = false;
+        int remotePlayerId = FindClientUniqueId(sender, port);
+        gameboy->SelectRemotePlayerMove(genericRequestResponse.data[1]);
+        
+        // Remove request for battle
+        RemovePendingRequest(ResponseType::MOVE_CHOSEN, remotePlayerId);
     }
 }
 
@@ -604,4 +619,20 @@ int Network::FindClientUniqueId(sf::IpAddress sender, unsigned short port) {
     }
     
     return -1;
+}
+
+/**
+ * Add a pending request notifying other player of battle move made.
+ */
+void Network::SendPlayerMove(int targetUniqueId, int move) {
+    if (!moveSent) {
+        GenericRequestResponse sendMove;
+        sendMove.responseType = ResponseType::MOVE_CHOSEN;
+        sendMove.data.push_back(targetUniqueId);
+        sendMove.data.push_back(move);
+        
+        pendingRequests.push_back(sendMove);
+        
+        moveSent = true;
+    }
 }

@@ -62,6 +62,7 @@ void MemoryManagementUnit::Reset() {
     overridePokemonParty = false;
     overrideEnemyParty = false;
     ignoreEnemyBattleChanges = false;
+    reachedSelectEnemyMove = false;
     
     bios_mode = false;//true;
     bios = {0x31, 0xFE, 0xFF, 0xAF, 0x21, 0xFF, 0x9F, 0x32, 0xCB, 0x7C, 0x20, 0xFB, 0x21, 0x26, 0xFF, 0x0E, // 16/row (0-15)
@@ -313,6 +314,16 @@ void MemoryManagementUnit::Reset() {
  * Returns byte read from provided address
  */
 uint8_t MemoryManagementUnit::ReadByte(uint16_t address) {    
+    if (address == 0x5564 and mbc.rom_offset / 0x4000 == 0xF) {
+        // SelectEnemyMove memory location
+        reachedSelectEnemyMove = true;
+    }
+    
+    if (address == 0xccdd and overrideEnemyMove) {
+        // wSelectedEnemyMove being read, override enemy move
+        return enemyMove;
+    }
+    
     if (overridePokemonParty and address >= 0xd163 and address < 0xd273) {
         // If overriding pokemon party, use the pre-defined memory block
         return wPartyMons[address - 0xd163];

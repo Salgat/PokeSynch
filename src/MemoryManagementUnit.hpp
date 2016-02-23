@@ -100,6 +100,11 @@ public:
     void SetPartyMonsters(const std::array<uint8_t, 0x108+8>& party, bool enemy);
     std::array<uint8_t, 0x108+8> SavePartyMonstersFromMemory(bool enemy);
     void ResetPartyMonsters(bool enemy); // Disables party monsters override
+    
+    // Remote Battle
+    bool reachedSelectEnemyMove; // Set to true everytime this memory location is read
+    bool overrideEnemyMove;
+    uint8_t enemyMove;
 
 private:
     Processor* cpu;
