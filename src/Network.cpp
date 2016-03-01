@@ -359,7 +359,7 @@ HostGameState Network::HostUpdate(const NetworkGameState& localGameState) {
                 auto gameState = HandleGameStateResponse(packet, sender, port);
                 clientGameStates[gameState.uniqueId] = gameState;
             } else if (packetType == static_cast<int>(PacketType::GENERIC_REQUEST)) {
-                std::cout << "Handling generic request packet" << std::endl;
+                //std::cout << "Handling generic request packet" << std::endl;
                 HandleGenericRequestPacket(packet, sender, port);
             }
         } else if (result == sf::Socket::Disconnected) {

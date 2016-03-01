@@ -322,8 +322,16 @@ uint8_t MemoryManagementUnit::ReadByte(uint16_t address) {
         WriteByte(0xcc3e, 0xff); // Set wSerialExchangeNybbleReceiveData to 0xff
         WriteByte(0xcf92, static_cast<uint8_t>(whichPokemon)); // whichPokemon
         WriteByte(0xcd6a, static_cast<uint8_t>(action)); // wActionResultOrTookBattleTurn
+        WriteByte(0xccdd, 0xff); // wEnemySelectedMove = cannot select move
+        std::cout << "Ignore" << std::endl;
+        ignoreMemoryWrites.insert(0xccdd);
         changePokemon = false;
-        
+    }
+    
+    if (address == 0x5564 and mbc.rom_offset / 0x4000 == 0xF) {
+        // Enemy move is done, remove any possible override for wEnemySelectedMove
+        std::cout << "Removing ignore" << std::endl;
+        ignoreMemoryWrites.erase(0xccdd);
     }
      
     if (address == 0x5564 and mbc.rom_offset / 0x4000 == 0xF) {
@@ -331,7 +339,7 @@ uint8_t MemoryManagementUnit::ReadByte(uint16_t address) {
         reachedSelectEnemyMove = true;
     }
     
-    if (address == 0xccdd and overrideEnemyMove) {
+    if (address == 0xccdd and overrideEnemyMove and ignoreMemoryWrites.count(0xccdd) == 0) {
         // wSelectedEnemyMove being read, override enemy move
         return enemyMove;
     }
