@@ -63,6 +63,7 @@ void MemoryManagementUnit::Reset() {
     overrideEnemyParty = false;
     ignoreEnemyBattleChanges = false;
     reachedSelectEnemyMove = false;
+    changePokemon = false;
     
     bios_mode = false;//true;
     bios = {0x31, 0xFE, 0xFF, 0xAF, 0x21, 0xFF, 0x9F, 0x32, 0xCB, 0x7C, 0x20, 0xFB, 0x21, 0x26, 0xFF, 0x0E, // 16/row (0-15)
@@ -313,7 +314,18 @@ void MemoryManagementUnit::Reset() {
 /**
  * Returns byte read from provided address
  */
-uint8_t MemoryManagementUnit::ReadByte(uint16_t address) {    
+uint8_t MemoryManagementUnit::ReadByte(uint16_t address) {   
+    if (changePokemon and address == 0x42a9 and mbc.rom_offset / 0x4000 == 0xF) {
+        // Program Counter is at SelectEnemyMove but we want the enemy to change pokemon, so change
+        // the program counter to the location to switch pokemon for enemy
+        cpu->program_counter.word = 0x42b0;
+        WriteByte(0xcc3e, 0xff); // Set wSerialExchangeNybbleReceiveData to 0xff
+        WriteByte(0xcf92, static_cast<uint8_t>(whichPokemon)); // whichPokemon
+        WriteByte(0xcd6a, static_cast<uint8_t>(action)); // wActionResultOrTookBattleTurn
+        changePokemon = false;
+        
+    }
+     
     if (address == 0x5564 and mbc.rom_offset / 0x4000 == 0xF) {
         // SelectEnemyMove memory location
         reachedSelectEnemyMove = true;

@@ -611,6 +611,7 @@ void Network::HandleGenericRequestPacket(sf::Packet& packet, sf::IpAddress sende
                 mmu->changePokemon = true;
                 mmu->action = genericRequestResponse.data[3];
                 mmu->whichPokemon = genericRequestResponse.data[4];
+                mmu->reachedSelectEnemyMove = false;
             }
             
             // Remove any additional requests
