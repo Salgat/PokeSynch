@@ -105,6 +105,9 @@ public:
     bool reachedSelectEnemyMove; // Set to true everytime this memory location is read
     bool overrideEnemyMove;
     uint8_t enemyMove;
+    bool changePokemon;
+    int action;
+    int whichPokemon;
 
 private:
     Processor* cpu;

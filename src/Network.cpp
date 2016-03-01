@@ -521,7 +521,7 @@ void Network::CreateBattleRequest(int targetUniqueId) {
  * Creates a pending request accepting a battle request.
  */
 void Network::AcceptBattleRequest(int targetUniqueId) {
-    std::cout << "Sending accepting battle to: " << targetUniqueId << std::endl;
+    //std::cout << "Sending accepting battle to: " << targetUniqueId << std::endl;
     GenericRequestResponse acceptBattleRequest;
     acceptBattleRequest.responseType = ResponseType::ACCEPT_BATTLE_REQUEST;
     acceptBattleRequest.data.push_back(targetUniqueId);
@@ -538,7 +538,7 @@ void Network::AcceptBattleRequest(int targetUniqueId) {
  * Creates a pending request refusing a battle request.
  */
 void Network::RefuseBattleRequest(int targetUniqueId) {
-    std::cout << "Sending refusal to battle to: " << targetUniqueId << std::endl;
+    //std::cout << "Sending refusal to battle to: " << targetUniqueId << std::endl;
     GenericRequestResponse refuseBattleRequest;
     refuseBattleRequest.responseType = ResponseType::REFUSE_BATTLE_REQUEST;
     refuseBattleRequest.data.push_back(targetUniqueId);
@@ -573,12 +573,12 @@ void Network::HandleGenericRequestPacket(sf::Packet& packet, sf::IpAddress sende
     packet >> genericRequestResponse;
     if (genericRequestResponse.responseType == ResponseType::REQUEST_BATTLE) {
         // Remote player has requested battle; open dialogue requesting battle
-        std::cout << "Remote Player has requested battle" << std::endl;
+        //std::cout << "Remote Player has requested battle" << std::endl;
         input->dialogueWithPlayer = PlayerDialogue::REQUESTED_BATTLE;
         input->talkingWithPlayer = FindClientUniqueId(sender, port); // TODO: Handled unknown client
     } else if (genericRequestResponse.responseType == ResponseType::REFUSE_BATTLE_REQUEST) {
         // Battle Refused by remote player
-        std::cout << "Player refused to battle" << std::endl;
+        //std::cout << "Player refused to battle" << std::endl;
         input->dialogueWithPlayer = PlayerDialogue::NOT_IN_DIALOGUE;
         
         // Remove battle request from pending requests
@@ -586,7 +586,7 @@ void Network::HandleGenericRequestPacket(sf::Packet& packet, sf::IpAddress sende
         RemovePendingRequest(ResponseType::REQUEST_BATTLE, remotePlayerId);
     } else if (genericRequestResponse.responseType == ResponseType::ACCEPT_BATTLE_REQUEST) {
         // Battle Accepted by remote player, initiate battle
-        std::cout << "Player accepted battle" << std::endl;
+        //std::cout << "Player accepted battle" << std::endl;
         input->dialogueWithPlayer = PlayerDialogue::NOT_IN_DIALOGUE;
         
         int remotePlayerId = FindClientUniqueId(sender, port);
@@ -598,12 +598,20 @@ void Network::HandleGenericRequestPacket(sf::Packet& packet, sf::IpAddress sende
         RemovePendingRequest(ResponseType::REQUEST_BATTLE, remotePlayerId);
     } else if (inBattle and moveSent and genericRequestResponse.responseType == ResponseType::MOVE_CHOSEN) {
         // Receiving move by remote player
-        std::cout << "Player sent battle move" << std::endl;
+        //std::cout << "Player sent battle move" << std::endl;
         if (battleTurn == genericRequestResponse.data[2]) {
-            // If the battle data is for this turn, update the move
+            // If the battle data is for this turn, update the move or take the action
             moveSent = false;
             int remotePlayerId = FindClientUniqueId(sender, port);
-            gameboy->SelectRemotePlayerMove(genericRequestResponse.data[1]);
+            int action = genericRequestResponse.data[3];
+            if (action == 0) {
+                //std::cout << "Action: " << action << std::endl;
+                gameboy->SelectRemotePlayerMove(genericRequestResponse.data[1]);
+            } else {
+                mmu->changePokemon = true;
+                mmu->action = genericRequestResponse.data[3];
+                mmu->whichPokemon = genericRequestResponse.data[4];
+            }
             
             // Remove any additional requests
             RemovePendingRequest(ResponseType::REQUEST_BATTLE, remotePlayerId);
@@ -628,9 +636,9 @@ int Network::FindClientUniqueId(sf::IpAddress sender, unsigned short port) {
 /**
  * Add a pending request notifying other player of battle move made.
  */
-void Network::SendPlayerMove(int targetUniqueId, int move) {
+void Network::SendPlayerMove(int targetUniqueId, int move, int action, int whichPokemon) {
     if (!moveSent) {
-        std::cout << "Sending player move" << std::endl;
+        //std::cout << "Sending player move" << std::endl;
         
         // First remove old move
         RemovePendingRequest(ResponseType::MOVE_CHOSEN, targetUniqueId);
@@ -640,6 +648,8 @@ void Network::SendPlayerMove(int targetUniqueId, int move) {
         sendMove.data.push_back(targetUniqueId);
         sendMove.data.push_back(move);
         sendMove.data.push_back(++battleTurn);
+        sendMove.data.push_back(action);
+        sendMove.data.push_back(whichPokemon);
         
         pendingRequests.push_back(sendMove);
         

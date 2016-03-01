@@ -165,7 +165,7 @@ public:
     void CreateBattleRequest(int targetUniqueId);
     void AcceptBattleRequest(int targetUniqueId);
     void RefuseBattleRequest(int targetUniqueId);
-    void SendPlayerMove(int targetUniqueId, int move);
+    void SendPlayerMove(int targetUniqueId, int move, int action, int whichPokemon);
     
 private:
     MemoryManagementUnit* mmu;

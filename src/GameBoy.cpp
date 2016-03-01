@@ -98,9 +98,12 @@ std::pair<sf::Image, bool> GameBoy::RenderFrame() {
             // Display battle dialogue
             if (mmu.reachedSelectEnemyMove) {
                 // TODO: Add a timeout for this (in case remote player disconnects)
-                std::cout << "Sending player move from gameboy" << std::endl;
+                //std::cout << "Sending player move from gameboy" << std::endl;
                 DrawWaitingForEnemyMove();
-                network.SendPlayerMove(input.talkingWithPlayer, static_cast<int>(mmu.ReadByte(0xccdc))); // Send wPlayerSelectedMove to remote player
+                network.SendPlayerMove(input.talkingWithPlayer, 
+                                       static_cast<int>(mmu.ReadByte(0xccdc)), // wPlayerSelectedMove
+                                       static_cast<int>(mmu.ReadByte(0xcd6a)), // wActionResultOrTookBattleTurn
+                                       static_cast<int>(mmu.ReadByte(0xcf92))); // wWhichPokemon
             }
         }
 	}
