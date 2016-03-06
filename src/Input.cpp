@@ -333,12 +333,14 @@ void Input::UpdateInput() {
         KeyUp(KeyType::DOWN);
         down = false;
     }
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::X) and !a) {
-        KeyDown(KeyType::A);
-        a = true;
-    } else if (!sf::Keyboard::isKeyPressed(sf::Keyboard::X) and a) {
-        KeyUp(KeyType::A);
-        a = false;
+    if (!ignoreA) {
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::X) and !a) {
+            KeyDown(KeyType::A);
+            a = true;
+        } else if (!sf::Keyboard::isKeyPressed(sf::Keyboard::X) and a) {
+            KeyUp(KeyType::A);
+            a = false;
+        }
     }
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Z) and !b) {
         KeyDown(KeyType::B);

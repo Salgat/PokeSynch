@@ -812,3 +812,19 @@ int Display::FacingOtherPlayer() {
     
     return -1;
 }
+
+/**
+ * Reads the current frame to see if the cursor has ITEM selected.
+ */
+bool Display::ItemIsSelected(const sf::Image& image) {
+    int const offsetX = 70;
+    int const offsetY = 128;
+    for (int x = 0; x < 9; ++x) {
+        for (int y = 0; y < 9; ++y) {
+            if (image.getPixel(x+offsetX,y+offsetY).r != kItemSelectBMP[x + 9*y]) {
+                return false;
+            }
+        }
+    }
+    return true;
+}

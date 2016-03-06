@@ -77,6 +77,7 @@ public:
     PlayerDialogue dialogueWithPlayer;
     int talkingWithPlayer;
     int currentSelection; // Selection in current menu, 0 = first, 1 = second, etc
+    bool ignoreA;
 
 private:
     MemoryManagementUnit* mmu;

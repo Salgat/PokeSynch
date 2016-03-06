@@ -107,6 +107,12 @@ std::pair<sf::Image, bool> GameBoy::RenderFrame() {
             }
         }
 	}
+    
+    if (network.inBattle and display.ItemIsSelected(display.frame)) {
+        input.ignoreA = true;
+    } else {
+        input.ignoreA = false;
+    }
 	
 	return std::make_pair(display.frame, running);
 }
