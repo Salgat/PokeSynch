@@ -13,6 +13,7 @@
 #include "Timer.hpp"
 #include "Display.hpp"
 #include "Gameboy.hpp"
+#include "Network.hpp"
 
 /**
  * Initialize memory
@@ -51,11 +52,12 @@ void MemoryManagementUnit::LoadRom(std::string rom_name) {
     Reset();
 }
 
-void MemoryManagementUnit::Initialize(Processor* cpu_, Input* input_, Display* display_, Timer* timer_) {
+void MemoryManagementUnit::Initialize(Processor* cpu_, Input* input_, Display* display_, Timer* timer_, Network* network_) {
     cpu = cpu_;
     input = input_;
 	display = display_;
 	timer = timer_;
+    network = network_;
 }
 
 void MemoryManagementUnit::Reset() {
@@ -64,6 +66,7 @@ void MemoryManagementUnit::Reset() {
     ignoreEnemyBattleChanges = false;
     reachedSelectEnemyMove = false;
     changePokemon = false;
+    battleRandomCalled = false;
     
     bios_mode = false;//true;
     bios = {0x31, 0xFE, 0xFF, 0xAF, 0x21, 0xFF, 0x9F, 0x32, 0xCB, 0x7C, 0x20, 0xFB, 0x21, 0x26, 0xFF, 0x0E, // 16/row (0-15)
@@ -314,7 +317,15 @@ void MemoryManagementUnit::Reset() {
 /**
  * Returns byte read from provided address
  */
-uint8_t MemoryManagementUnit::ReadByte(uint16_t address) {   
+uint8_t MemoryManagementUnit::ReadByte(uint16_t address) {
+    if (network->inBattle and address == 0x6e9b and mbc.rom_offset / 0x4000 == 0xF) {
+        // If BattleRandom is called, load a with random value and force a "RET" instruction
+        seed = RandomFunction(seed);
+        cpu->AF.higher = static_cast<uint8_t>(seed % 255);
+        std::cout << "random called at address: " << static_cast<unsigned int>(address) << ", " << static_cast<unsigned int>(cpu->AF.higher) << std::endl;
+        return static_cast<uint8_t>(0xc9);
+    }
+    
     if (changePokemon and address == 0x42a9 and mbc.rom_offset / 0x4000 == 0xF) {
         // Program Counter is at SelectEnemyMove but we want the enemy to change pokemon, so change
         // the program counter to the location to switch pokemon for enemy
@@ -896,4 +907,13 @@ bool MemoryManagementUnit::IsNotBattleChanges(uint16_t address) {
     }
     
     return false;
+}
+
+/**
+ * Produces a pseudo-random values.
+ */
+int MemoryManagementUnit::RandomFunction(int seed)
+{
+    seed = (1103515245 * seed + 12345) % 2147483648;
+    return seed;
 }

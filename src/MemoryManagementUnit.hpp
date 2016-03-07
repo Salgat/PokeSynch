@@ -57,6 +57,7 @@ class Processor;
 class Input;
 class Display;
 class Timer;
+class Network;
 class Pokemon;
 
 class MemoryManagementUnit {
@@ -82,7 +83,7 @@ public:
 
     MemoryManagementUnit();
 
-    void Initialize(Processor* cpu_, Input* input_, Display* display_, Timer* timer_);
+    void Initialize(Processor* cpu_, Input* input_, Display* display_, Timer* timer_, Network* network_);
     void Reset();
     void LoadRom(std::string rom_name);
 
@@ -108,12 +109,20 @@ public:
     bool changePokemon;
     int action;
     int whichPokemon;
+    int RandomFunction(int seed);
+    int seed;
+    bool battleRandomCalled;
 
 private:
     Processor* cpu;
     Input* input;
 	Display* display;
 	Timer* timer;
+    Network* network;
+    
+    // Ignore list: 0x55d2 (chooseRandomMove), 
+    // Approve list: 0x669c (RandomizeDamage), 0x6602 (doAccuracyCheck), 0x756a (StatModifierDownEffect), 0x607d (CriticalHitTest)
+    std::array<uint16_t, 4> const battleRandomAddresses = {{0x669c, 0x6602, 0x756a, 0x607d}};
 
     void TransferToOAM(uint16_t origin);
     void PopulateParty(const std::vector<Pokemon>& party, const std::array<uint8_t, 8>& partyData, std::array<uint8_t, 0x108+8>& partyArray);

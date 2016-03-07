@@ -10,7 +10,7 @@ GameBoy::GameBoy(sf::RenderWindow& window, std::string name, unsigned short port
 	: screen_size(1)
 	, game_speed(1) {
     cpu.Initialize(&mmu);
-    mmu.Initialize(&cpu, &input, &display, &timer);
+    mmu.Initialize(&cpu, &input, &display, &timer, &network);
     display.Initialize(&cpu, &mmu);
     timer.Initialize(&cpu, &mmu, &display);
 	input.Initialize(&mmu, &display, &timer, &cpu, this, &network, &window);
@@ -318,8 +318,8 @@ void GameBoy::InitiateBattle() {
     
     mmu.WriteByte(0xd057, 0x2); // wIsInBattle
     mmu.WriteByte(0xd05a, 0x0); // wBattleType
-    mmu.WriteByte(0xd059, 247); // wCurOpponent
-    mmu.WriteByte(0xd713, 247); // wEnemyMonOrTrainerClass
+    mmu.WriteByte(0xd059, 200 + 0x19); // wCurOpponent
+    mmu.WriteByte(0xd713, 200 + 0x19); // wEnemyMonOrTrainerClass
     mmu.WriteByte(0xd05d, 1); // wTrainerNo
 }
 

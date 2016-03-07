@@ -514,6 +514,11 @@ void Network::CreateBattleRequest(int targetUniqueId) {
     battleRequest.responseType = ResponseType::REQUEST_BATTLE;
     battleRequest.data.push_back(targetUniqueId);
     
+    // Create a battle random seed
+    std::srand(std::time(0));
+    mmu->seed = std::rand();
+    battleRequest.data.push_back(mmu->seed);
+    
     pendingRequests.push_back(battleRequest);
 }
 
@@ -576,6 +581,7 @@ void Network::HandleGenericRequestPacket(sf::Packet& packet, sf::IpAddress sende
         //std::cout << "Remote Player has requested battle" << std::endl;
         input->dialogueWithPlayer = PlayerDialogue::REQUESTED_BATTLE;
         input->talkingWithPlayer = FindClientUniqueId(sender, port); // TODO: Handled unknown client
+        mmu->seed = genericRequestResponse.data[1]; // Store the battle random seed in case the request is accepted
     } else if (genericRequestResponse.responseType == ResponseType::REFUSE_BATTLE_REQUEST) {
         // Battle Refused by remote player
         //std::cout << "Player refused to battle" << std::endl;
