@@ -66,7 +66,7 @@ void MemoryManagementUnit::Reset() {
     ignoreEnemyBattleChanges = false;
     reachedSelectEnemyMove = false;
     changePokemon = false;
-    battleRandomCalled = false;
+    setLinkState = false;
     
     bios_mode = false;//true;
     bios = {0x31, 0xFE, 0xFF, 0xAF, 0x21, 0xFF, 0x9F, 0x32, 0xCB, 0x7C, 0x20, 0xFB, 0x21, 0x26, 0xFF, 0x0E, // 16/row (0-15)
@@ -318,6 +318,33 @@ void MemoryManagementUnit::Reset() {
  * Returns byte read from provided address
  */
 uint8_t MemoryManagementUnit::ReadByte(uint16_t address) {
+    if ((address == 0x5f1c or address == 0x652e or address == 0x6b01 or address == 0x674b or address == 0x6e19 or address == 0x754c) and mbc.rom_offset / 0x4000 == 0xF) {
+        // If we reach certain functions, enable a one time read of wLinkState = LINK_STATE_BATTLING
+        // This is enabled for the following functions: GetEnemyMonStat, LoadEnemyMonFromParty(0x6b01), ApplyBadgeStatBoosts, StatModifierDownEffect
+        setLinkState = true;
+    }
+    if (address == 0xd12b and setLinkState) {
+        // When reading wLinkState, return true if enabled for next wLinkState read
+        std::cout << "Reading link state" << std::endl;
+        setLinkState = false;
+        return static_cast<uint8_t>(0x04);
+    }
+    
+    if (network->inBattle and address == 0xffaa) {
+        // This determines the difference between the battle "host" and "client" for things like equal speed who goes first
+        if (isBattleInitiator) {
+            std::cout << "Battle Initiator" << std::endl;
+            return static_cast<uint8_t>(0x02);
+        } else {
+            std::cout << "Not Battle Initiator" << std::endl;
+            return static_cast<uint8_t>(0x01);
+        }
+    }
+    
+    if (network->inBattle and address == 0xccd5) {
+        return static_cast<uint8_t>(0x00);
+    }
+    
     if (network->inBattle and address == 0x6e9b and mbc.rom_offset / 0x4000 == 0xF) {
         // If BattleRandom is called, load a with random value and force a "RET" instruction
         seed = RandomFunction(seed);

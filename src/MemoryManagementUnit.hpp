@@ -111,7 +111,8 @@ public:
     int whichPokemon;
     int RandomFunction(int seed);
     int seed;
-    bool battleRandomCalled;
+    bool setLinkState;
+    bool isBattleInitiator;
 
 private:
     Processor* cpu;

@@ -537,6 +537,7 @@ void Network::AcceptBattleRequest(int targetUniqueId) {
     mmu->SetPartyMonsters(clientGameStates[targetUniqueId].partyMonsters, true);
     gameboy->InitiateBattle();
     inBattle = true;
+    mmu->isBattleInitiator = false;
 }
 
 /**
@@ -599,6 +600,7 @@ void Network::HandleGenericRequestPacket(sf::Packet& packet, sf::IpAddress sende
         mmu->SetPartyMonsters(clientGameStates[remotePlayerId].partyMonsters, true);
         gameboy->InitiateBattle();
         inBattle = true;
+        mmu->isBattleInitiator = true;
         
         // Remove request for battle
         RemovePendingRequest(ResponseType::REQUEST_BATTLE, remotePlayerId);
