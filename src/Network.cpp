@@ -62,7 +62,7 @@ sf::Packet& operator <<(sf::Packet& packet, const NetworkGameState& networkGameS
                << sprite.canMove << sprite.inGrass;    
     }
     
-    for (unsigned int index = 0; index < 0x108 + 8; ++index) {
+    for (unsigned int index = 0; index < 0x194; ++index) {
         packet << networkGameState.partyMonsters[index];
     }
     
@@ -90,7 +90,7 @@ sf::Packet& operator >>(sf::Packet& packet, NetworkGameState& networkGameState) 
                >> sprite.canMove >> sprite.inGrass;    
     }
     
-    for (unsigned int index = 0; index < 0x108 + 8; ++index) {
+    for (unsigned int index = 0; index < 0x194; ++index) {
         packet >> networkGameState.partyMonsters[index];
     }
     
@@ -108,7 +108,7 @@ sf::Packet& operator <<(sf::Packet& packet, const HostGameState& hostGameState) 
                << playerPosition.yPosition << playerPosition.xPosition
                << playerPosition.yBlockPosition << playerPosition.xBlockPosition;
                
-        for (unsigned int index = 0; index < 0x108 + 8; ++index) {
+        for (unsigned int index = 0; index < 0x194; ++index) {
             packet << playerGameState.partyMonsters[index];
         }
     }
@@ -137,7 +137,7 @@ sf::Packet& operator >>(sf::Packet& packet, HostGameState& hostGameState) {
                >> playerPosition.yPosition >> playerPosition.xPosition 
                >> playerPosition.yBlockPosition >> playerPosition.xBlockPosition; 
                
-        for (unsigned int index = 0; index < 0x108 + 8; ++index) {
+        for (unsigned int index = 0; index < 0x194; ++index) {
             packet >> playerGameState.partyMonsters[index];
         }
     }
@@ -510,6 +510,8 @@ void Network::HandleConnectResponse(sf::Packet gameStatePacket, sf::IpAddress se
  * Creates a pending request for battle.
  */
 void Network::CreateBattleRequest(int targetUniqueId) {
+    if (inBattle) return;
+    
     GenericRequestResponse battleRequest;
     battleRequest.responseType = ResponseType::REQUEST_BATTLE;
     battleRequest.data.push_back(targetUniqueId);
@@ -526,6 +528,11 @@ void Network::CreateBattleRequest(int targetUniqueId) {
  * Creates a pending request accepting a battle request.
  */
 void Network::AcceptBattleRequest(int targetUniqueId) {
+    if (inBattle) return;
+    
+    // Remove old pending requests
+    pendingRequests.clear();
+    
     //std::cout << "Sending accepting battle to: " << targetUniqueId << std::endl;
     GenericRequestResponse acceptBattleRequest;
     acceptBattleRequest.responseType = ResponseType::ACCEPT_BATTLE_REQUEST;
@@ -580,24 +587,36 @@ void Network::HandleGenericRequestPacket(sf::Packet& packet, sf::IpAddress sende
     if (genericRequestResponse.responseType == ResponseType::REQUEST_BATTLE) {
         // Remote player has requested battle; open dialogue requesting battle
         //std::cout << "Remote Player has requested battle" << std::endl;
-        input->dialogueWithPlayer = PlayerDialogue::REQUESTED_BATTLE;
-        input->talkingWithPlayer = FindClientUniqueId(sender, port); // TODO: Handled unknown client
-        mmu->seed = genericRequestResponse.data[1]; // Store the battle random seed in case the request is accepted
+        // Only open dialogue if not in battle
+        if (!inBattle) {
+            input->dialogueWithPlayer = PlayerDialogue::REQUESTED_BATTLE;
+            input->talkingWithPlayer = FindClientUniqueId(sender, port); // TODO: Handled unknown client
+            mmu->seed = genericRequestResponse.data[1]; // Store the battle random seed in case the request is accepted
+        }
     } else if (genericRequestResponse.responseType == ResponseType::REFUSE_BATTLE_REQUEST) {
         // Battle Refused by remote player
+        
+        // Remove old pending requests
+        pendingRequests.clear();
+        
         //std::cout << "Player refused to battle" << std::endl;
         input->dialogueWithPlayer = PlayerDialogue::NOT_IN_DIALOGUE;
         
         // Remove battle request from pending requests
         int remotePlayerId = FindClientUniqueId(sender, port);
         RemovePendingRequest(ResponseType::REQUEST_BATTLE, remotePlayerId);
-    } else if (genericRequestResponse.responseType == ResponseType::ACCEPT_BATTLE_REQUEST) {
+    } else if (!inBattle and genericRequestResponse.responseType == ResponseType::ACCEPT_BATTLE_REQUEST) {
         // Battle Accepted by remote player, initiate battle
+        
+        // Remove old pending requests
+        pendingRequests.clear();
+        
         //std::cout << "Player accepted battle" << std::endl;
         input->dialogueWithPlayer = PlayerDialogue::NOT_IN_DIALOGUE;
         
         int remotePlayerId = FindClientUniqueId(sender, port);
         mmu->SetPartyMonsters(clientGameStates[remotePlayerId].partyMonsters, true);
+        
         gameboy->InitiateBattle();
         inBattle = true;
         mmu->isBattleInitiator = true;

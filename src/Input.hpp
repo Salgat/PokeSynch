@@ -93,7 +93,7 @@ private:
 	
 	int current_save_slot;
     
-    std::array<uint8_t, 0x108 + 8> pokemonParty;
+    std::array<uint8_t, 0x194> pokemonParty;
 	
 	// Helper Function
 	void SaveCharVector(serq::SerializeQueue& save_data, std::vector<uint8_t>& data, std::size_t length);

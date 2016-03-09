@@ -318,14 +318,19 @@ void MemoryManagementUnit::Reset() {
  * Returns byte read from provided address
  */
 uint8_t MemoryManagementUnit::ReadByte(uint16_t address) {
-    if ((address == 0x5f1c or address == 0x652e or address == 0x6b01 or address == 0x674b or address == 0x6e19 or address == 0x754c) and mbc.rom_offset / 0x4000 == 0xF) {
+    if (network->inBattle and (address == 0x7049) and mbc.rom_offset / 0x4000 == 0xF) {
+        // The battle has ended
+        std::cout << "Battle ended" << std::endl;
+        network->inBattle = false;
+    }
+    
+    if (network->inBattle and (address == 0x5f1c or address == 0x652e or address == 0x6b01 or address == 0x674b or address == 0x6e19 or address == 0x754c) and mbc.rom_offset / 0x4000 == 0xF) {
         // If we reach certain functions, enable a one time read of wLinkState = LINK_STATE_BATTLING
         // This is enabled for the following functions: GetEnemyMonStat, LoadEnemyMonFromParty(0x6b01), ApplyBadgeStatBoosts, StatModifierDownEffect
         setLinkState = true;
     }
-    if (address == 0xd12b and setLinkState) {
+    if (network->inBattle and address == 0xd12b and setLinkState) {
         // When reading wLinkState, return true if enabled for next wLinkState read
-        std::cout << "Reading link state" << std::endl;
         setLinkState = false;
         return static_cast<uint8_t>(0x04);
     }
@@ -333,10 +338,8 @@ uint8_t MemoryManagementUnit::ReadByte(uint16_t address) {
     if (network->inBattle and address == 0xffaa) {
         // This determines the difference between the battle "host" and "client" for things like equal speed who goes first
         if (isBattleInitiator) {
-            std::cout << "Battle Initiator" << std::endl;
             return static_cast<uint8_t>(0x02);
         } else {
-            std::cout << "Not Battle Initiator" << std::endl;
             return static_cast<uint8_t>(0x01);
         }
     }
@@ -349,11 +352,10 @@ uint8_t MemoryManagementUnit::ReadByte(uint16_t address) {
         // If BattleRandom is called, load a with random value and force a "RET" instruction
         seed = RandomFunction(seed);
         cpu->AF.higher = static_cast<uint8_t>(seed % 255);
-        std::cout << "random called at address: " << static_cast<unsigned int>(address) << ", " << static_cast<unsigned int>(cpu->AF.higher) << std::endl;
         return static_cast<uint8_t>(0xc9);
     }
     
-    if (changePokemon and address == 0x42a9 and mbc.rom_offset / 0x4000 == 0xF) {
+    if (network->inBattle and changePokemon and address == 0x42a9 and mbc.rom_offset / 0x4000 == 0xF) {
         // Program Counter is at SelectEnemyMove but we want the enemy to change pokemon, so change
         // the program counter to the location to switch pokemon for enemy
         cpu->program_counter.word = 0x42b0;
@@ -361,32 +363,30 @@ uint8_t MemoryManagementUnit::ReadByte(uint16_t address) {
         WriteByte(0xcf92, static_cast<uint8_t>(whichPokemon)); // whichPokemon
         WriteByte(0xcd6a, static_cast<uint8_t>(action)); // wActionResultOrTookBattleTurn
         WriteByte(0xccdd, 0xff); // wEnemySelectedMove = cannot select move
-        std::cout << "Ignore" << std::endl;
         ignoreMemoryWrites.insert(0xccdd);
         changePokemon = false;
     }
     
-    if (address == 0x5564 and mbc.rom_offset / 0x4000 == 0xF) {
+    if (network->inBattle and address == 0x5564 and mbc.rom_offset / 0x4000 == 0xF) {
         // Enemy move is done, remove any possible override for wEnemySelectedMove
-        std::cout << "Removing ignore" << std::endl;
         ignoreMemoryWrites.erase(0xccdd);
     }
      
-    if (address == 0x5564 and mbc.rom_offset / 0x4000 == 0xF) {
+    if (network->inBattle and address == 0x5564 and mbc.rom_offset / 0x4000 == 0xF) {
         // SelectEnemyMove memory location
         reachedSelectEnemyMove = true;
     }
     
-    if (address == 0xccdd and overrideEnemyMove and ignoreMemoryWrites.count(0xccdd) == 0) {
+    if (network->inBattle and address == 0xccdd and overrideEnemyMove and ignoreMemoryWrites.count(0xccdd) == 0) {
         // wSelectedEnemyMove being read, override enemy move
         return enemyMove;
     }
     
-    if (overridePokemonParty and address >= 0xd163 and address < 0xd273) {
+    if (network->inBattle and overridePokemonParty and address >= 0xd163 and address < 0xd273) {
         // If overriding pokemon party, use the pre-defined memory block
         return wPartyMons[address - 0xd163];
     }
-    if (overrideEnemyParty and address >= 0xd89c and address < 0xd9ac) {
+    if (network->inBattle and overrideEnemyParty and address >= 0xd89c and address <= 0xd9ee) {
         return wEnemyMons[address - 0xd89c];
     }
     
@@ -406,7 +406,6 @@ uint8_t MemoryManagementUnit::ReadByte(uint16_t address) {
         case 0x7000:
               if (address == 0x5719 and mbc.rom_offset / 0x4000 == 0xE) {
                 // If the AI is deciding a move, this means the battle has started
-                std::cout << "Disabling override for rom offset: " << mbc.rom_offset  << std::endl;
                 ignoreEnemyBattleChanges = false;
             }
 			return cartridge_rom[static_cast<unsigned int>(address&0x3FFF) + mbc.rom_offset];
@@ -561,7 +560,7 @@ uint16_t MemoryManagementUnit::ReadWord(uint16_t address) {
 void MemoryManagementUnit::WriteByte(uint16_t address, uint8_t value) {
     if (ignoreMemoryWrites.count(address)) return;
     
-    if (overrideEnemyParty and !ignoreEnemyBattleChanges and !IsNotBattleChanges(address) and address >= 0xd89c and address < 0xd9ac) {
+    if (network->inBattle and overrideEnemyParty and !ignoreEnemyBattleChanges and !IsNotBattleChanges(address) and address >= 0xd89c and address <= 0xd9ee) {
         wEnemyMons[address - 0xd89c] = value;
     }
     
@@ -813,7 +812,7 @@ void MemoryManagementUnit::SetPartyMonsters(const std::vector<Pokemon>& party, c
 /**
  * Overrides the party monsters of either the player's or the opponent.
  */
-void MemoryManagementUnit::SetPartyMonsters(const std::array<uint8_t, 0x108+8>& party, bool enemy) {
+void MemoryManagementUnit::SetPartyMonsters(const std::array<uint8_t, 0x194>& party, bool enemy) {
     if (!enemy) {
         overridePokemonParty = true;
         wPartyMons = party;
@@ -839,7 +838,7 @@ void MemoryManagementUnit::ResetPartyMonsters(bool enemy) {
 /**
  * Populates the provided pokemon party array.
  */
-void MemoryManagementUnit::PopulateParty(const std::vector<Pokemon>& party, const std::array<uint8_t, 8>& partyData, std::array<uint8_t, 0x108+8>& partyArray) {
+void MemoryManagementUnit::PopulateParty(const std::vector<Pokemon>& party, const std::array<uint8_t, 8>& partyData, std::array<uint8_t, 0x194>& partyArray) {
     for (unsigned int index = 0; index < 8; ++index) {
         partyArray[index] = partyData[index];
     }
@@ -898,11 +897,11 @@ void MemoryManagementUnit::PopulateParty(const std::vector<Pokemon>& party, cons
 /**
  * Returns an array of the pokemon party.
  */
-std::array<uint8_t, 0x108+8> MemoryManagementUnit::SavePartyMonstersFromMemory(bool enemy) {
-    std::array<uint8_t, 0x108+8> party;
+std::array<uint8_t, 0x194> MemoryManagementUnit::SavePartyMonstersFromMemory(bool enemy) {
+    std::array<uint8_t, 0x194> party;
     unsigned int offset = !enemy ? 0xd163 : 0xd89c;
     
-    for (unsigned int index = 0; index < 0x108+8; ++index) {
+    for (unsigned int index = 0; index < 0x194; ++index) {
         party[index] = wram[(offset+index) & 0x1FFF];
     }
     

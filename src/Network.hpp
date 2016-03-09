@@ -70,7 +70,7 @@ struct NetworkGameState {
     int walkBikeSurfState;
     PlayerPosition playerPosition;
     std::vector<SpriteState> sprites;
-    std::array<uint8_t, 0x108 + 8> partyMonsters; // The player's pokemon party from 0xd163 to 0xd273
+    std::array<uint8_t, 0x194> partyMonsters; // The player's pokemon party from 0xd163 to 0xd273
 };
 
 /**

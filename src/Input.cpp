@@ -212,51 +212,55 @@ bool Input::PollEvents() {
                     
                 // Start dialogue with player
                 case sf::Keyboard::X:
-                    if (mmu->ReadByte(0xd057) == 2) break; // Skip if in a battle
-                    tempTalkingWithPlayer = display->FacingOtherPlayer();
-                    if (dialogueWithPlayer == PlayerDialogue::SELECT_BATTLE_OR_TRADE) {
-                        if (currentSelection == 0) {
-                            // Initiate battle with player
-                            dialogueWithPlayer = PlayerDialogue::SELECTED_BATTLE;
-                            network->CreateBattleRequest(talkingWithPlayer);
-                        } else if (currentSelection == 1) {
-                            // Initiate trade with player
-                            dialogueWithPlayer = PlayerDialogue::SELECTED_TRADE;
+                    // Only allow dialogue outside battle
+                    if (mmu->ReadByte(0xd057) != 2 and !network->inBattle) {
+                        if (mmu->ReadByte(0xd057) == 2) break; // Skip if in a battle
+                        tempTalkingWithPlayer = display->FacingOtherPlayer();
+                        if (dialogueWithPlayer == PlayerDialogue::SELECT_BATTLE_OR_TRADE) {
+                            if (currentSelection == 0) {
+                                // Initiate battle with player
+                                dialogueWithPlayer = PlayerDialogue::SELECTED_BATTLE;
+                                network->CreateBattleRequest(talkingWithPlayer);
+                            } else if (currentSelection == 1) {
+                                // Initiate trade with player
+                                dialogueWithPlayer = PlayerDialogue::SELECTED_TRADE;
+                            }
+                        } else if (dialogueWithPlayer == PlayerDialogue::REQUESTED_BATTLE) {
+                            // Respond to battle request
+                            if (currentSelection == 0) {
+                                // Agree to battle
+                                //dialogueWithPlayer = PlayerDialogue::SELECTED_BATTLE_RESPONSE;
+                                dialogueWithPlayer = PlayerDialogue::NOT_IN_DIALOGUE;
+                                network->AcceptBattleRequest(talkingWithPlayer);
+                            } else if (currentSelection == 1) {
+                                // Refuse battle
+                                //dialogueWithPlayer = PlayerDialogue::REFUSED_BATTLE_RESPONSE;
+                                dialogueWithPlayer = PlayerDialogue::NOT_IN_DIALOGUE;
+                                network->RefuseBattleRequest(talkingWithPlayer);
+                            }
+                        } else if (dialogueWithPlayer == PlayerDialogue::REQUESTED_TRADE) {    
+                            // Respond to trade request
+                            if (currentSelection == 0) {
+                                // Agree to trade
+                                dialogueWithPlayer = PlayerDialogue::SELECTED_TRADE_RESPONSE;
+                            } else if (currentSelection == 1) {
+                                // Refuse trade
+                                dialogueWithPlayer = PlayerDialogue::REFUSED_TRADE_RESPONSE;
+                            }
+                        } else if (tempTalkingWithPlayer >= 0 && dialogueWithPlayer == PlayerDialogue::NOT_IN_DIALOGUE) {
+                            // Engage in dialogue with player
+                            talkingWithPlayer = tempTalkingWithPlayer;
+                            dialogueWithPlayer = PlayerDialogue::SELECT_BATTLE_OR_TRADE;
                         }
-                    } else if (dialogueWithPlayer == PlayerDialogue::REQUESTED_BATTLE) {
-                        // Respond to battle request
-                        if (currentSelection == 0) {
-                            // Agree to battle
-                            //dialogueWithPlayer = PlayerDialogue::SELECTED_BATTLE_RESPONSE;
-                            dialogueWithPlayer = PlayerDialogue::NOT_IN_DIALOGUE;
-                            network->AcceptBattleRequest(talkingWithPlayer);
-                        } else if (currentSelection == 1) {
-                            // Refuse battle
-                            //dialogueWithPlayer = PlayerDialogue::REFUSED_BATTLE_RESPONSE;
-                            dialogueWithPlayer = PlayerDialogue::NOT_IN_DIALOGUE;
-                            network->RefuseBattleRequest(talkingWithPlayer);
-                        }
-                    } else if (dialogueWithPlayer == PlayerDialogue::REQUESTED_TRADE) {    
-                        // Respond to trade request
-                        if (currentSelection == 0) {
-                            // Agree to trade
-                            dialogueWithPlayer = PlayerDialogue::SELECTED_TRADE_RESPONSE;
-                        } else if (currentSelection == 1) {
-                            // Refuse trade
-                            dialogueWithPlayer = PlayerDialogue::REFUSED_TRADE_RESPONSE;
-                        }
-                    } else if (tempTalkingWithPlayer >= 0 && dialogueWithPlayer == PlayerDialogue::NOT_IN_DIALOGUE) {
-                        // Engage in dialogue with player
-                        talkingWithPlayer = tempTalkingWithPlayer;
-                        dialogueWithPlayer = PlayerDialogue::SELECT_BATTLE_OR_TRADE;
+                        break;
                     }
-                    break;
                 
                 // Cancel dialogue with player    
                 case sf::Keyboard::Z:
                     if (dialogueWithPlayer != PlayerDialogue::NOT_IN_DIALOGUE) {
                         // Cancel dialogue with player
                         dialogueWithPlayer = PlayerDialogue::NOT_IN_DIALOGUE;
+                        network->pendingRequests.clear(); // Remove any pending requests
                     }
                     break;
                     

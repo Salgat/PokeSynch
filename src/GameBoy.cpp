@@ -315,11 +315,11 @@ void GameBoy::InitiateBattle() {
     // Use https://github.com/pret/pokered/blob/351146024bdd386c328af0f2abdb04e728e4c133/constants/trainer_constants.asm
     // with 200 + number
     // wTrainerNo indicates which index in that wCurOpponent type to choose (starting at 1 for the first)
-    
+    std::cout << "Initiating battle" << std::endl;
     mmu.WriteByte(0xd057, 0x2); // wIsInBattle
     mmu.WriteByte(0xd05a, 0x0); // wBattleType
-    mmu.WriteByte(0xd059, 200 + 0x19); // wCurOpponent
-    mmu.WriteByte(0xd713, 200 + 0x19); // wEnemyMonOrTrainerClass
+    mmu.WriteByte(0xd059, 200 + 0x1); // wCurOpponent (0x19 is SONY1)
+    mmu.WriteByte(0xd713, 200 + 0x1); // wEnemyMonOrTrainerClass
     mmu.WriteByte(0xd05d, 1); // wTrainerNo
 }
 

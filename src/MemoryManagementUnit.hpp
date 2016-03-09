@@ -98,8 +98,8 @@ public:
     std::unordered_map<uint16_t, uint8_t> orBitMask; // Bitwise OR for WRAM address with provided value
     
     void SetPartyMonsters(const std::vector<Pokemon>& party, const std::array<uint8_t, 8>& partyData, bool enemy); // Overrides party monsters
-    void SetPartyMonsters(const std::array<uint8_t, 0x108+8>& party, bool enemy);
-    std::array<uint8_t, 0x108+8> SavePartyMonstersFromMemory(bool enemy);
+    void SetPartyMonsters(const std::array<uint8_t, 0x194>& party, bool enemy);
+    std::array<uint8_t, 0x194> SavePartyMonstersFromMemory(bool enemy);
     void ResetPartyMonsters(bool enemy); // Disables party monsters override
     
     // Remote Battle
@@ -126,14 +126,14 @@ private:
     std::array<uint16_t, 4> const battleRandomAddresses = {{0x669c, 0x6602, 0x756a, 0x607d}};
 
     void TransferToOAM(uint16_t origin);
-    void PopulateParty(const std::vector<Pokemon>& party, const std::array<uint8_t, 8>& partyData, std::array<uint8_t, 0x108+8>& partyArray);
+    void PopulateParty(const std::vector<Pokemon>& party, const std::array<uint8_t, 8>& partyData, std::array<uint8_t, 0x194>& partyArray);
     bool IsNotBattleChanges(uint16_t address);
     
     bool overridePokemonParty;
     bool overrideEnemyParty;
     bool ignoreEnemyBattleChanges;
-    std::array<uint8_t, 0x108 + 8> wPartyMons;
-    std::array<uint8_t, 0x108 + 8> wEnemyMons;
+    std::array<uint8_t, 0x194> wPartyMons;
+    std::array<uint8_t, 0x194> wEnemyMons;
 };
 
 #endif //GAMEBOYEMULATOR_MEMORYMANAGEMENTUNIT_HPP
