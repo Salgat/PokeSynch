@@ -67,6 +67,7 @@ void MemoryManagementUnit::Reset() {
     reachedSelectEnemyMove = false;
     changePokemon = false;
     setLinkState = false;
+    reachedInitBattle = false;
     
     bios_mode = false;//true;
     bios = {0x31, 0xFE, 0xFF, 0xAF, 0x21, 0xFF, 0x9F, 0x32, 0xCB, 0x7C, 0x20, 0xFB, 0x21, 0x26, 0xFF, 0x0E, // 16/row (0-15)
@@ -318,10 +319,17 @@ void MemoryManagementUnit::Reset() {
  * Returns byte read from provided address
  */
 uint8_t MemoryManagementUnit::ReadByte(uint16_t address) {
-    if (network->inBattle and (address == 0x7049) and mbc.rom_offset / 0x4000 == 0xF) {
+    if (network->inBattle and address == 0x6f12 and mbc.rom_offset / 0x4000 == 0xF) {
+        reachedInitBattle = true;
+    }
+    if (network->inBattle and address == 0x0f4d and reachedInitBattle) {
         // The battle has ended
+        // TODO: Check that the address of "OverworldLoop" is called, since this means all processing is done and the game 
+        // has resumed back to normal
         std::cout << "Battle ended" << std::endl;
         network->inBattle = false;
+        network->pendingRequests.clear();
+        reachedInitBattle = false;
     }
     
     if (network->inBattle and (address == 0x5f1c or address == 0x652e or address == 0x6b01 or address == 0x674b or address == 0x6e19 or address == 0x754c) and mbc.rom_offset / 0x4000 == 0xF) {

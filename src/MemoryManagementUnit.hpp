@@ -113,6 +113,7 @@ public:
     int seed;
     bool setLinkState;
     bool isBattleInitiator;
+    bool reachedInitBattle;
 
 private:
     Processor* cpu;
