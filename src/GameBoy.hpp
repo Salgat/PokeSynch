@@ -73,12 +73,13 @@ public:
 
     void Reset();
     std::pair<sf::Image, bool> RenderFrame();
-    void LoadGame(std::string rom_name);
+    void LoadGame(std::string rom_name, std::string save_file);
     
     void SelectRemotePlayerMove(int move);
 
 //private:
     sf::Image frame;
+    unsigned int frame_counter;
     bool initiateBattleFlag;
     bool synchronizedMap;
     unsigned int updateCounter;
@@ -90,6 +91,8 @@ public:
     Timer timer;
     Input input;
     Network network;
+    
+    void SaveGame();
 
     NetworkGameState CreateGameState();
     void UpdateLocalGameState(const HostGameState& hostGameState, bool isHost);

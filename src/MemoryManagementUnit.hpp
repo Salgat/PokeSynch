@@ -78,14 +78,17 @@ public:
     uint8_t cartridge_type; // Determines which memory bank controller is used
     uint8_t ram_size; // 0: None, 1: 1 bank @ 2KB, 2: 1 bank @ 8KB, 3: 4 banks @ 32KB total
     MemoryBankController mbc;
+    bool updateSaveFile;
 	
 	std::string game_title;
+    std::string save_name;
 
     MemoryManagementUnit();
 
     void Initialize(Processor* cpu_, Input* input_, Display* display_, Timer* timer_, Network* network_);
     void Reset();
     void LoadRom(std::string rom_name);
+    void LoadSave(std::string save_filename);
 
     // Memory Access
     uint8_t ReadByte(uint16_t address);

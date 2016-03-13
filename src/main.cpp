@@ -27,6 +27,7 @@ void DrawFrame(sf::Image const& frame, GameBoy& gameBoy) {
 
 int main(int argc, char* argv[]) {
     std::string game_name = "";
+    std::string save_file = "";
     std::string ipAddress = "";
     std::string name = "";
     unsigned short port = 34231;
@@ -46,6 +47,8 @@ int main(int argc, char* argv[]) {
             port = std::stoi(arg.substr(6));
         } else if (arg.find("-hostport=") != std::string::npos) {
             hostPort = std::stoi(arg.substr(10));
+        } else if (arg.find("-save=") == 0) {
+            save_file = arg.substr(6);
         }
     }
 
@@ -56,7 +59,7 @@ int main(int argc, char* argv[]) {
 
     window.create(sf::VideoMode(160, 144), "GBS");
     GameBoy gameboy(window, name, port, ipAddress, hostPort);
-    gameboy.LoadGame(game_name);
+    gameboy.LoadGame(game_name, save_file);
 
 	bool running = true;
     auto start_time = std::chrono::steady_clock::now();

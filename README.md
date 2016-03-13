@@ -18,8 +18,10 @@ https://github.com/Salgat/BubbleGrow/wiki/Building-from-source
 Running the emulator
 ------------------------------------------
 To run after building: 
- * Host: PokeSynch.exe -game="PokemonRed.gb" -host
- * Client: PokeSynch.exe -game="PokemonRed.gb" -connect=127.0.0.1
+ * Host: PokeSynch.exe -game="PokemonRed.gb" -save="PokemonRed.sav" -host
+ * Client: PokeSynch.exe -game="PokemonRed.gb" -save="PokemonRed.sav" -connect=127.0.0.1
+
+Note: The -save argument is optional and used to load and use save files.
 
 Controls
 ------------------------------------------

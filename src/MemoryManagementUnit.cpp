@@ -5,6 +5,8 @@
 #include <iostream>
 #include <fstream>
 #include <cmath>
+#include <iomanip>
+#include <iterator>
 
 
 #include "MemoryManagementUnit.hpp"
@@ -29,6 +31,8 @@ MemoryManagementUnit::MemoryManagementUnit() {
     hram = std::vector<uint8_t>(0x100, 0);
 
     Reset();
+    
+    save_name = "";
 }
 
 /**
@@ -131,6 +135,8 @@ void MemoryManagementUnit::Reset() {
     // Setup ROM banks and RAM
     // Setup controller
     mbc = MemoryBankController();
+    
+    updateSaveFile = false;
 
     // Setup configuration of controller type
     cartridge_type = cartridge_rom[0x0147];
@@ -681,7 +687,8 @@ void MemoryManagementUnit::WriteByte(uint16_t address, uint8_t value) {
         // External RAM
         case 0xA000:
         case 0xB000:
-			if (mbc.mbc1) {
+			if (mbc.mbc1 or mbc.mbc2) {
+                // TODO: I believe MBC2 is only the first 512 bytes with the upper nibble ignored (set to 0xF)
                 eram[mbc.ram_offset + (address & 0x1FFF)] = value;
             } else if (mbc.mbc3) {
                 if (mbc.ram_bank <= 0x03) {
@@ -689,6 +696,9 @@ void MemoryManagementUnit::WriteByte(uint16_t address, uint8_t value) {
                 } else {
                     // TODO: Implement writing to RTC
                 }
+            }
+            if (mbc.battery) {
+                updateSaveFile = true;
             }
             break;
 
@@ -950,4 +960,21 @@ int MemoryManagementUnit::RandomFunction(int seed)
 {
     seed = (1103515245 * seed + 12345) % 2147483648;
     return seed;
+}
+
+/**
+ * Reads save file (.SAV) into eram.
+ */
+void MemoryManagementUnit::LoadSave(std::string save_filename) {
+    save_name = save_filename;
+    std::string save_location = "../../rom/" + save_name;
+    
+    std::cout << "Loading save file: " << save_location;
+    
+    std::ifstream input(save_location, std::ios::in | std::ios::binary);
+    char byte;
+    std::size_t index = 0;
+    while(input.get(byte) and index < 0x8000) {
+        eram[index++] = static_cast<uint8_t>(byte);
+    }
 }

@@ -5,6 +5,7 @@
 #include "GameBoy.hpp"
 
 #include <iostream>
+#include <fstream>
 
 GameBoy::GameBoy(sf::RenderWindow& window, std::string name, unsigned short port, std::string ipAddress, unsigned short hostPort)
 	: screen_size(1)
@@ -27,14 +28,18 @@ GameBoy::GameBoy(sf::RenderWindow& window, std::string name, unsigned short port
     }
 }
 
-void GameBoy::LoadGame(std::string rom_name) {
+void GameBoy::LoadGame(std::string rom_name, std::string save_file) {
     mmu.LoadRom(rom_name);
+    if (save_file != "") {
+        mmu.LoadSave(save_file);
+    }
 }
 
 void GameBoy::Reset() {
     cpu.Reset();
     mmu.Reset();
     timer.Reset();
+    frame_counter = 0;
     
     synchronizedMap = false;
     initiateBattleFlag = false;
@@ -114,6 +119,15 @@ std::pair<sf::Image, bool> GameBoy::RenderFrame() {
         input.ignoreA = false;
     }
 	
+    // Update the .SAV file if flagged (once per second)
+    if (++frame_counter >= 60) {
+        frame_counter = 0;
+        if (mmu.updateSaveFile) {
+            SaveGame();
+             mmu.updateSaveFile = false;
+        }
+    }
+    
 	return std::make_pair(display.frame, running);
 }
 
@@ -385,4 +399,21 @@ void GameBoy::SelectRemotePlayerMove(int move) {
     mmu.reachedSelectEnemyMove = false;
     mmu.overrideEnemyMove = true;
     mmu.enemyMove = static_cast<uint8_t>(move);
+}
+
+/**
+ + * Saves eram to a .SAV file. (RTC is not implemented yet)
+ + */
+void GameBoy::SaveGame() {
+    std::string save_name;
+    if (mmu.save_name == "") {
+        save_name = "../../rom/" + mmu.game_title + std::string(".sav");
+    } else {
+        save_name = "../../rom/" +mmu.save_name;
+    }
+    
+    std::ofstream OutFile;
+    OutFile.open(save_name, std::ios::out | std::ios::binary);
+    std::copy(mmu.eram.begin(), mmu.eram.begin()+0x8000, std::ostreambuf_iterator<char>(OutFile));
+    OutFile.close();
 }

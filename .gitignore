@@ -44,5 +44,6 @@ Thumbs.db
 # Roms and save files
 *.gb
 *.gbs
+*.sav
 
 # Exclude from ignore
